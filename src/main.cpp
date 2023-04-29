@@ -27,17 +27,27 @@ void process_events()
 }
 
 
-void cap_frame_rate(Uint64& prev_time, float& remainder)
+void cap_frame_rate()
 {
-	long wait = 16 + remainder;  // accumulator helps keep us closer to 60fps
-	remainder -= static_cast<int>(remainder);  // casting to int is the trick
-	remainder += 0.667;
+	static Uint64 prev_time = SDL_GetTicks64();  // could this be causing the bugs?
+	static double remainder;
 
-	long frame_time = SDL_GetTicks64() - prev_time;
+	// TODO: review types, conversions, & casting
+	Uint64 wait = 16 + (int)remainder;  // accumulator helps keep us closer to 60fps
+	remainder -= (int)remainder;  // casting to int is the trick
+	remainder += (1000.0 / 60.0) - 16.0;  // prints "0.666667"
+
+	Uint64 frame_time = SDL_GetTicks64() - prev_time;
 	wait -= frame_time;
-	if (wait < 1)
+
+	if (wait < 1)  // do we need this?
 	{
 		wait = 1;
+	}
+
+	if (wait > 17)  // prevent freezing (SDL window-related issues?)
+	{
+		wait = 17;
 	}
 
 	SDL_Delay(wait);
@@ -47,26 +57,19 @@ void cap_frame_rate(Uint64& prev_time, float& remainder)
 
 int main(int argc, char* argv[])
 {
-	// TODO: avoid misleading function names (init_scene & begin/end_scene)
+	auto seed = time(nullptr);
+	srand(seed);
+	std::cout << "Seeded rng with {" << seed << "}.\n";
 
 	init_SDL();
 	init_scene();
 
-	Uint64 prev_time = SDL_GetTicks64();
-	float remainder = 0.0f;
-
 	while (!quit)
 	{
 		process_events();
-
 		app.delegate.update();
-
-		begin_scene();
 		app.delegate.render();
-		end_scene();
-
-		// TODO: Test frame rate.
-		cap_frame_rate(prev_time, remainder);
+		cap_frame_rate();  // TODO: Test frame rate.
 	}
 
 	cleanup();

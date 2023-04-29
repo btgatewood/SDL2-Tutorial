@@ -1,11 +1,197 @@
+// TODO: Use keyboard for movement, mouse position for aiming!!!
+//		 The player's sprite should track the mouse position 
+//		 and always be facing the cursor.
 #include "main.h"
 
 extern App app;
 
 
+// function declarations
+void update();
+void render();
+void update_player();
+void update_ships();
+void update_bullets();
+void fire_bullet();
+void spawn_enemy();
+
+
+// static game objects & data
 Scene scene;
 Entity player;
+
 SDL_Texture* bullet_texture;
+SDL_Texture* enemy_texture;
+
+int enemy_spawn_timer;
+
+
+// function definitions
+void init_scene()
+{
+	app.delegate.update = update;
+	app.delegate.render = render;
+
+	scene.ships_head.next = &player;
+	scene.ships_tail = &player;
+
+	scene.bullets_tail = &scene.bullets_head;
+
+	// init player
+	player.texture = load_texture("data/player.png");	// 1432x1394
+	// SDL_QueryTexture(player.texture, nullptr, nullptr, &player.w, &player.w);
+	player.w = 64;
+	player.h = 64;
+	player.x = SCREEN_WIDTH / 4;
+	player.y = SCREEN_HEIGHT / 2;
+
+	// init textures
+	bullet_texture = load_texture("data/missile.png");  // 517x141
+	enemy_texture = load_texture("data/enemy.png");		// 768x813
+
+	enemy_spawn_timer = 0;
+}
+
+
+void update()
+{
+	update_player();
+
+	update_ships();
+	update_bullets();
+
+	if (--enemy_spawn_timer <= 0)
+	{
+		spawn_enemy();
+	}
+}
+
+
+void render()
+{
+	begin_scene();
+
+	// TODO: refactor to draw_entity() function
+	// float x = player.x - (player.w / 2.f);
+	// float y = player.y - (player.h / 2.f);
+	// draw(player.texture, x, y, player.w, player.h);
+	
+	// TODO: change draw order?
+
+	for (Entity* e = scene.ships_head.next; e != nullptr; e = e->next)
+	{
+		float x = e->x - (e->w / 2.f);
+		float y = e->y - (e->h / 2.f);
+		draw(e->texture, x, y, e->w, e->h);
+	}
+
+	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
+	{
+		float x = b->x - (b->w / 2.f);
+		float y = b->y - (b->h / 2.f);
+		draw(b->texture, x, y, b->w, b->h);
+	}
+
+	end_scene();
+}
+
+
+void update_player()
+{
+	player.dx = 0;
+	player.dy = 0;
+
+	if (app.keyboard[SDL_SCANCODE_UP] || app.keyboard[SDL_SCANCODE_W])
+	{
+		player.dy -= PLAYER_SPEED;
+	}
+	if (app.keyboard[SDL_SCANCODE_DOWN] || app.keyboard[SDL_SCANCODE_S])
+	{
+		player.dy += PLAYER_SPEED;
+	}
+	if (app.keyboard[SDL_SCANCODE_LEFT] || app.keyboard[SDL_SCANCODE_A])
+	{
+		player.dx -= PLAYER_SPEED;
+	}
+	if (app.keyboard[SDL_SCANCODE_RIGHT] || app.keyboard[SDL_SCANCODE_D])
+	{
+		player.dx += PLAYER_SPEED;
+	}
+
+	// NOTE: we move player in update_ships() function
+
+	if (player.reload > 0)
+	{
+		--player.reload;
+	}
+
+	if ((app.keyboard[SDL_SCANCODE_LCTRL] || app.keyboard[SDL_SCANCODE_SPACE])
+		&& player.reload == 0)
+	{
+		fire_bullet();
+	}
+}
+
+
+//  update entities
+//		prev = head
+//		for each entity
+//			move x,y
+//			if entity moved off screen
+//				if entity == tail
+//					tail = prev
+//				prev.next = entity.next
+//				delete entity
+//				entity = prev
+//			prev = entity
+
+
+void update_ships()
+{
+	Entity* prev = &scene.ships_head;
+
+	for (Entity* e = scene.ships_head.next; e != nullptr; e = e->next)
+	{
+		e->x += e->dx;
+		e->y += e->dy;
+
+		if (e != &player && e->x < -e->w)
+		{
+			if (e == scene.ships_tail)
+			{
+				scene.ships_tail = prev;
+			}
+
+			prev->next = e->next;
+			delete e;
+			e = prev;
+		}
+
+		prev = e;
+	}
+}
+
+
+void update_bullets()
+{
+	Entity* prev = &scene.bullets_head;  // lets us delete and re-link list
+	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
+	{
+		b->x += b->dx;
+		b->y += b->dy;
+		if (b->x > SCREEN_WIDTH)
+		{
+			if (b == scene.bullets_tail)
+			{
+				scene.bullets_tail = prev;
+			}
+			prev->next = b->next;
+			delete b;  // delete bullet
+			b = prev;
+		}
+		prev = b;
+	}
+}
 
 
 void fire_bullet()
@@ -30,115 +216,22 @@ void fire_bullet()
 	player.reload = 8;  // set reload timer
 }
 
-// TODO: Use keyboard for movement, mouse position for aiming!!!
-//		 The player's sprite should track the mouse position 
-//		 and always be facing the cursor.
 
-void update_player()
+void spawn_enemy()
 {
-	player.dx = 0;
-	player.dy = 0;
+	Entity* enemy = new Entity();
 
-	if (app.keyboard[SDL_SCANCODE_UP] || app.keyboard[SDL_SCANCODE_W])
-	{
-		player.dy -= PLAYER_SPEED;
-	}
-	if (app.keyboard[SDL_SCANCODE_DOWN] || app.keyboard[SDL_SCANCODE_S])
-	{
-		player.dy += PLAYER_SPEED;
-	}
-	if (app.keyboard[SDL_SCANCODE_LEFT] || app.keyboard[SDL_SCANCODE_A])
-	{
-		player.dx -= PLAYER_SPEED;
-	}
-	if (app.keyboard[SDL_SCANCODE_RIGHT] || app.keyboard[SDL_SCANCODE_D])
-	{
-		player.dx += PLAYER_SPEED;
-	}
+	scene.ships_tail->next = enemy;
+	scene.ships_tail = enemy;
 
-	player.x += player.dx;
-	player.y += player.dy;
+	enemy->texture = enemy_texture;
+	// SDL_QueryTexture(..., &enemy->w, &enemy->h);
+	enemy->w = 48;
+	enemy->h = 48;
+	enemy->x = SCREEN_WIDTH;
+	enemy->y = static_cast<float>(rand() % SCREEN_HEIGHT);
 
-	if (player.reload > 0)
-	{
-		--player.reload;
-	}
+	enemy->dx = -(2.f + (rand() % 4));
 
-	if ((app.keyboard[SDL_SCANCODE_LCTRL] || app.keyboard[SDL_SCANCODE_SPACE])
-		&& player.reload == 0)
-	{
-		fire_bullet();
-	}
-}
-
-
-void update_bullets()
-{
-	Entity* prev = &scene.bullets_head;  // store ptr to previous bullet
-
-	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
-	{
-		b->x += b->dx;
-		b->y += b->dy;
-
-		if (b->x > SCREEN_WIDTH)
-		{
-			// delete bullet
-			if (b == scene.bullets_tail)
-			{
-				scene.bullets_tail = prev;
-			}
-
-			prev->next = b->next;
-			delete b;
-			b = prev;
-		}
-
-		prev = b;
-	}
-}
-
-
-void update()
-{
-	update_player();
-	update_bullets();
-}
-
-
-void render()
-{
-	// TODO: refactor to draw_entity() function
-
-	float x = player.x - (player.w / 2.f);
-	float y = player.y - (player.h / 2.f);
-	draw(player.texture, x, y, player.w, player.h);
-
-	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
-	{
-		float x = b->x - (b->w / 2.f);
-		float y = b->y - (b->h / 2.f);
-		draw(b->texture, x, y, b->w, b->h);
-	}
-}
-
-
-void init_scene()
-{
-	app.delegate.update = update;
-	app.delegate.render = render;
-
-	scene.ships_head.next = &player;
-	scene.ships_tail = &player;
-
-	scene.bullets_tail = &scene.bullets_head;
-
-	player.texture = load_texture("data/player.png");   // 1432x1394
-	// SDL_QueryTexture(player.texture, nullptr, nullptr, &player.w, &player.w);
-	player.w = 64;
-	player.h = 64;
-	player.x = SCREEN_WIDTH / 4;
-	player.y = SCREEN_HEIGHT / 2;
-
-	bullet_texture = load_texture("data/missile.png");  // 517x141
+	enemy_spawn_timer = 30 + (rand() % 60);
 }
