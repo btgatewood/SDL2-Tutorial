@@ -31,12 +31,33 @@ void process_events()
 }
 
 
+void cap_frame_rate(Uint64& prev_time, float& remainder)
+{
+	long wait = 16 + remainder;  // accumulator helps keep us closer to 60fps
+	remainder -= static_cast<int>(remainder);  // casting to int is the trick
+	remainder += 0.667;
+
+	long frame_time = SDL_GetTicks64() - prev_time;
+	wait -= frame_time;
+	if (wait < 1)
+	{
+		wait = 1;
+	}
+
+	SDL_Delay(wait);
+	prev_time = SDL_GetTicks64();
+}
+
+
 int main(int argc, char* argv[])
 {
 	// TODO: avoid misleading function names (init_scene & begin/end_scene)
 
 	init_SDL();
 	init_scene();
+
+	Uint64 prev_time = SDL_GetTicks64();
+	float remainder = 0.0f;
 
 	while (!quit)
 	{
@@ -48,7 +69,8 @@ int main(int argc, char* argv[])
 		app.delegate.render();
 		end_scene();
 
-		SDL_Delay(16);
+		// TODO: Test frame rate.
+		cap_frame_rate(prev_time, remainder);
 	}
 
 	cleanup();
