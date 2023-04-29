@@ -26,19 +26,19 @@ void end_scene()
 }
 
 
+void draw(SDL_Texture* texture, float x, float y, int w, int h)
+{
+	SDL_Rect dstrect{ static_cast<int>(x), static_cast<int>(y), w, h };
+	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
+}
+
+
 void draw(SDL_Texture* texture, int x, int y)
 {
 	SDL_Rect dstrect;
 	dstrect.x = x;
 	dstrect.y = y;
 	SDL_QueryTexture(texture, nullptr, nullptr, &dstrect.w, &dstrect.h);
-	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
-}
-
-
-void draw(SDL_Texture* texture, int x, int y, int w, int h)
-{
-	SDL_Rect dstrect{ x, y, w, h };
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
 }
 
