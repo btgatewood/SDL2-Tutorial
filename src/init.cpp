@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "init.h"
+#include "main.h"
 
 extern App app;
 

@@ -1,5 +1,4 @@
-#include "draw.h"
-#include "scene.h"
+#include "main.h"
 
 extern App app;
 
@@ -31,6 +30,9 @@ void fire_bullet()
 	player.reload = 8;  // set reload timer
 }
 
+// TODO: Use keyboard for movement, mouse position for aiming!!!
+//		 The player's sprite should track the mouse position 
+//		 and always be facing the cursor.
 
 void update_player()
 {

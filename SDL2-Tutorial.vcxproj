@@ -26,11 +26,7 @@
     <ClCompile Include="src\scene.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\core.h" />
-    <ClInclude Include="src\draw.h" />
-    <ClInclude Include="src\init.h" />
-    <ClInclude Include="src\input.h" />
-    <ClInclude Include="src\scene.h" />
+    <ClInclude Include="src\main.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>

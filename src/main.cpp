@@ -1,8 +1,4 @@
-#include "core.h"
-#include "draw.h"
-#include "init.h"
-#include "input.h"
-#include "scene.h"
+#include "main.h"
 
 
 App app;
