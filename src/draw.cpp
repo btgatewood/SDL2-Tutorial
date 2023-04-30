@@ -6,12 +6,11 @@ extern App app;
 SDL_Texture* load_texture(const char* file)
 {
 	SDL_Texture* texture;
-	// SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO,
-	//	"Loading %s", file);
+	SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO, 
+		"Loading %s", file);
 	texture = IMG_LoadTexture(app.renderer, file);
 	return texture;
 }
-
 
 void begin_scene()
 {
@@ -19,12 +18,16 @@ void begin_scene()
 	SDL_RenderClear(app.renderer);
 }
 
-
 void end_scene()
 {
 	SDL_RenderPresent(app.renderer);
 }
 
+
+void draw(const Entity& entity)
+{
+	draw(entity.texture, entity.x, entity.y, entity.w, entity.h);
+}
 
 void draw(SDL_Texture* texture, float x, float y, int w, int h)
 {
@@ -32,8 +35,7 @@ void draw(SDL_Texture* texture, float x, float y, int w, int h)
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
 }
 
-
-void draw(SDL_Texture* texture, int x, int y)
+void draw(SDL_Texture* texture, int x, int y)  // uses texture dimensions
 {
 	SDL_Rect dstrect;
 	dstrect.x = x;
@@ -42,8 +44,7 @@ void draw(SDL_Texture* texture, int x, int y)
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
 }
 
-
-void draw(SDL_Texture* texture, int x, int y, float scale)
+void draw(SDL_Texture* texture, int x, int y, float scale)  // scales texture
 {
 	SDL_Rect dstrect;
 	SDL_QueryTexture(texture, nullptr, nullptr, &dstrect.w, &dstrect.h);

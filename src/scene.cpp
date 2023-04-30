@@ -7,23 +7,35 @@ extern App app;
 
 
 // function declarations
+// TODO: move update() and render() to top of module?
+void reset_scene();
+
+void fire_bullet();
+void fire_alien_bullet(Entity& entity);
+void spawn_enemy();
+void clamp_player();
+bool ship_collision(Entity& bullet);
+
 void update();
-void render();
 void update_player();
+void update_enemy_ai();
 void update_ships();
 void update_bullets();
-void fire_bullet();
-void spawn_enemy();
+
+void render();
 
 
 // static game objects & data
 Scene scene;
 Entity player;
 
+SDL_Texture* player_texture;
 SDL_Texture* bullet_texture;
-SDL_Texture* enemy_texture;
+SDL_Texture* alien_texture;
+SDL_Texture* alien_bullet_texture;
 
 int enemy_spawn_timer;
+int scene_reset_timer;
 
 
 // function definitions
@@ -32,30 +44,185 @@ void init_scene()
 	app.delegate.update = update;
 	app.delegate.render = render;
 
-	scene.ships_head.next = &player;
-	scene.ships_tail = &player;
+	// NOTE: these vars never change and always point to player, right?
+	//		 (...so do we really need them?)
+	// scene.ships_head.next = &player; 
+	// scene.ships_tail = &player;
 
+	// load textures
+	player_texture = load_texture("data/player.png");			  // 1432x1394
+	bullet_texture = load_texture("data/bullet_player.png");	  // 517x141
+	alien_texture = load_texture("data/alien.png");				  // 768x813
+	alien_bullet_texture = load_texture("data/bullet_alien.png"); // 182x35
+
+	reset_scene();
+}
+
+
+void reset_scene()
+{
+	Entity* e = nullptr;
+
+	while (player.next)  // delete alien ships in linked list
+	{
+		e = player.next;
+		player.next = e->next;
+		delete e;
+	}
+
+	while (scene.bullets_head.next)
+	{
+		e = scene.bullets_head.next;
+		scene.bullets_head.next = e->next;
+		delete e;
+	}
+
+	scene.ships_tail = &player;
 	scene.bullets_tail = &scene.bullets_head;
 
 	// init player
-	player.texture = load_texture("data/player.png");	// 1432x1394
-	// SDL_QueryTexture(player.texture, nullptr, nullptr, &player.w, &player.w);
+	player.texture = player_texture;
 	player.w = 64;
 	player.h = 64;
 	player.x = SCREEN_WIDTH / 4;
 	player.y = SCREEN_HEIGHT / 2;
-
-	// init textures
-	bullet_texture = load_texture("data/missile.png");  // 517x141
-	enemy_texture = load_texture("data/enemy.png");		// 768x813
+	player.health = 3;
+	player.owner = PLAYER;
 
 	enemy_spawn_timer = 0;
+	scene_reset_timer = FPS * 2;
+}
+
+
+void fire_bullet()
+{
+	Entity* bullet = new Entity();
+
+	scene.bullets_tail->next = bullet;
+	scene.bullets_tail = bullet;
+
+	bullet->texture = bullet_texture;
+	bullet->w = 32;
+	bullet->h = 8;
+
+	// position the bullet at player's center
+	bullet->x = player.x + (player.w / 2.f) - (bullet->w / 2.f);
+	bullet->y = player.y + (player.h / 2.f) - (bullet->h / 2.f);
+
+	bullet->dx = PLAYER_BULLET_SPEED;
+
+	bullet->health = 1;
+	bullet->owner = PLAYER;
+
+	player.reload = 8;  // set reload timer
+}
+
+
+void fire_alien_bullet(Entity& entity)
+{
+	Entity* bullet = new Entity();
+
+	scene.bullets_tail->next = bullet;
+	scene.bullets_tail = bullet;
+
+	bullet->texture = alien_bullet_texture;
+	bullet->w = 32;
+	bullet->h = 8;
+
+	bullet->x = entity.x + (entity.w / 2.f) - (bullet->w / 2.f);
+	bullet->y = entity.y + (entity.h / 2.f) - (bullet->h / 2.f);
+
+	// TODO: change function params to float?
+	calculate_slope(static_cast<int>(player.x) + (player.w / 2), 
+					static_cast<int>(player.y) + (player.h / 2), 
+					static_cast<int>(bullet->x), 
+					static_cast<int>(bullet->y), 
+					bullet->dx, bullet->dy);  // sets dx, dy
+
+	bullet->dx *= ALIEN_BULLET_SPEED;
+	bullet->dy *= ALIEN_BULLET_SPEED;
+
+	bullet->health = 1;
+	bullet->owner = ALIENS;
+
+	entity.reload = FPS * (1 + rand() % 3);  // random reload timer
+}
+
+
+void spawn_enemy()
+{
+	Entity* enemy = new Entity();
+
+	scene.ships_tail->next = enemy;
+	scene.ships_tail = enemy;
+
+	enemy->texture = alien_texture;
+	enemy->w = 48;
+	enemy->h = 48;
+	enemy->x = SCREEN_WIDTH;
+	enemy->y = rand() % SCREEN_HEIGHT * 1.f;
+	enemy->dx = -(2.f + (rand() % 4));  // random speed
+	enemy->health = 1;
+	enemy->reload = FPS * (1 + rand() % 3);
+	enemy->owner = ALIENS;
+
+	enemy_spawn_timer = 30 + (rand() % FPS * 3);
+}
+
+
+void clamp_player()
+{
+	if (player.health != 0)
+	{
+		if (player.x < 0)
+		{
+			player.x = 0;
+		}
+		if (player.x > SCREEN_WIDTH - player.w)
+		{
+			player.x = static_cast<float>(SCREEN_WIDTH - player.w);
+		}
+
+		if (player.y < 0)
+		{
+			player.y = 0;
+		}
+		if (player.y > SCREEN_HEIGHT - player.h)
+		{
+			player.y = static_cast<float>(SCREEN_HEIGHT - player.h);
+		}
+	}
+}
+
+
+bool ship_collision(Entity& bullet)
+{
+	for (Entity* e = &player; e != nullptr; e = e->next)
+	{
+		// use mid-right for player bullets, mid-left for alien bullets
+		float x = bullet.owner == PLAYER ? bullet.x + (bullet.w * 0.75f) : 
+										   bullet.x + (bullet.w * 0.25f);
+		float center_y = bullet.y + (bullet.h / 2.f);
+
+		if (e->owner != bullet.owner && collision_point(*e, x, center_y))
+		{
+			// decrease entity & bullet health
+			e->health -= 1;
+			bullet.health = 0;
+			return true;
+		}
+	}
+
+	return false;
 }
 
 
 void update()
 {
 	update_player();
+	clamp_player();
+
+	update_enemy_ai();
 
 	update_ships();
 	update_bullets();
@@ -64,43 +231,30 @@ void update()
 	{
 		spawn_enemy();
 	}
-}
 
-
-void render()
-{
-	begin_scene();
-
-	// TODO: refactor to draw_entity() function
-	// float x = player.x - (player.w / 2.f);
-	// float y = player.y - (player.h / 2.f);
-	// draw(player.texture, x, y, player.w, player.h);
-	
-	// TODO: change draw order?
-
-	for (Entity* e = scene.ships_head.next; e != nullptr; e = e->next)
+	if (player.health <= 0)
 	{
-		float x = e->x - (e->w / 2.f);
-		float y = e->y - (e->h / 2.f);
-		draw(e->texture, x, y, e->w, e->h);
-	}
+		--scene_reset_timer;
 
-	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
-	{
-		float x = b->x - (b->w / 2.f);
-		float y = b->y - (b->h / 2.f);
-		draw(b->texture, x, y, b->w, b->h);
+		if (scene_reset_timer <= 0)
+		{
+			reset_scene();
+		}
 	}
-
-	end_scene();
 }
 
 
 void update_player()
 {
+	if (player.health <= 0)
+	{
+		return;
+	}
+
 	player.dx = 0;
 	player.dy = 0;
 
+	// move with arrow keys or wasd
 	if (app.keyboard[SDL_SCANCODE_UP] || app.keyboard[SDL_SCANCODE_W])
 	{
 		player.dy -= PLAYER_SPEED;
@@ -118,44 +272,49 @@ void update_player()
 		player.dx += PLAYER_SPEED;
 	}
 
-	// NOTE: we move player in update_ships() function
+	player.x += player.dx;
+	player.y += player.dy;
 
 	if (player.reload > 0)
 	{
 		--player.reload;
 	}
 
-	if ((app.keyboard[SDL_SCANCODE_LCTRL] || app.keyboard[SDL_SCANCODE_SPACE])
-		&& player.reload == 0)
+	// fire with left ctrl, space, or right ctrl
+	if (app.keyboard[SDL_SCANCODE_LCTRL] || app.keyboard[SDL_SCANCODE_SPACE] ||
+		app.keyboard[SDL_SCANCODE_RCTRL])
 	{
-		fire_bullet();
+		if (player.reload == 0)
+		{
+			fire_bullet();
+		}
 	}
 }
 
 
-//  update entities
-//		prev = head
-//		for each entity
-//			move x,y
-//			if entity moved off screen
-//				if entity == tail
-//					tail = prev
-//				prev.next = entity.next
-//				delete entity
-//				entity = prev
-//			prev = entity
+void update_enemy_ai()
+{
+	for (Entity* e = player.next; e != nullptr; e = e->next)
+	{
+		if (--e->reload <= 0)  // decrement timer
+		{
+			fire_alien_bullet(*e);
+		}
+	}
+}
 
 
 void update_ships()
 {
-	Entity* prev = &scene.ships_head;
+	Entity* prev = &player;
 
-	for (Entity* e = scene.ships_head.next; e != nullptr; e = e->next)
+	for (Entity* e = player.next; e != nullptr; e = e->next)
 	{
 		e->x += e->dx;
 		e->y += e->dy;
 
-		if (e != &player && e->x < -e->w)
+		// delete enemy if it's dead or offscreen
+		if (e->health <= 0 || e->x < -e->w)  
 		{
 			if (e == scene.ships_tail)
 			{
@@ -172,14 +331,22 @@ void update_ships()
 }
 
 
+bool is_offscreen(const Entity& entity)
+{
+	return entity.x < -entity.w || entity.x > SCREEN_WIDTH ||
+		entity.y < -entity.y || entity.y > SCREEN_HEIGHT;
+}
+
+
 void update_bullets()
 {
-	Entity* prev = &scene.bullets_head;  // lets us delete and re-link list
+	Entity* prev = &scene.bullets_head;  // lets us delete entity & re-link list
 	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
 	{
 		b->x += b->dx;
 		b->y += b->dy;
-		if (b->x > SCREEN_WIDTH)
+
+		if (is_offscreen(*b) || ship_collision(*b))
 		{
 			if (b == scene.bullets_tail)
 			{
@@ -189,49 +356,33 @@ void update_bullets()
 			delete b;  // delete bullet
 			b = prev;
 		}
+
 		prev = b;
 	}
 }
 
 
-void fire_bullet()
+void render()
 {
-	Entity* bullet = new Entity();
+	begin_scene();
 
-	scene.bullets_tail->next = bullet;
-	scene.bullets_tail = bullet;
+	// NOTE: we stopped centering the texture to the entity's position here 
+	//		 to make collision detection easier.
+	// float x = player.x - (player.w / 2.f);
+	// float y = player.y - (player.h / 2.f);
+	// draw(player.texture, x, y, player.w, player.h);
 
-	bullet->texture = bullet_texture;
-	// SDL_QueryTexture(bullet_texture, nullptr, nullptr, &b->w, &b->h);
-	bullet->w = 32;
-	bullet->h = 8;
-	bullet->x = player.x;
-	bullet->y = player.y;  // center y to player
-	bullet->dx = PLAYER_BULLET_SPEED;
-	// bullet->dy = 0;
-	bullet->health = 1;
-	// bullet->reload = 0;
-	// bullet->next = nullptr;
+	draw(player);
 
-	player.reload = 8;  // set reload timer
-}
+	for (Entity* e = player.next; e != nullptr; e = e->next)
+	{
+		draw(*e);
+	}
 
+	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
+	{
+		draw(*b);
+	}
 
-void spawn_enemy()
-{
-	Entity* enemy = new Entity();
-
-	scene.ships_tail->next = enemy;
-	scene.ships_tail = enemy;
-
-	enemy->texture = enemy_texture;
-	// SDL_QueryTexture(..., &enemy->w, &enemy->h);
-	enemy->w = 48;
-	enemy->h = 48;
-	enemy->x = SCREEN_WIDTH;
-	enemy->y = static_cast<float>(rand() % SCREEN_HEIGHT);
-
-	enemy->dx = -(2.f + (rand() % 4));
-
-	enemy_spawn_timer = 30 + (rand() % 60);
+	end_scene();
 }

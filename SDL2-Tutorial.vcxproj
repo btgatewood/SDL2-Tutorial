@@ -23,6 +23,7 @@
     <ClCompile Include="src\init.cpp" />
     <ClCompile Include="src\input.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\physics.cpp" />
     <ClCompile Include="src\scene.cpp" />
   </ItemGroup>
   <ItemGroup>
