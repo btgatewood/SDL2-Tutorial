@@ -29,11 +29,25 @@ void draw(const Entity& entity)
 	draw(entity.texture, entity.x, entity.y, entity.w, entity.h);
 }
 
+void draw(const Debris& debris)
+{
+	draw_rect(debris.texture, debris.srcrect, 
+			  debris.x, debris.y, debris.w, debris.h);
+}
+
 void draw(SDL_Texture* texture, float x, float y, int w, int h)
 {
 	SDL_Rect dstrect{ static_cast<int>(x), static_cast<int>(y), w, h };
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
 }
+
+void draw_rect(SDL_Texture* texture, const SDL_Rect& srcrect, 
+			   float x, float y, int w, int h)
+{
+	SDL_Rect dstrect{ static_cast<int>(x), static_cast<int>(y), w, h };
+	SDL_RenderCopy(app.renderer, texture, &srcrect, &dstrect);
+}
+
 
 void draw(SDL_Texture* texture, int x, int y)  // uses texture dimensions
 {
@@ -42,6 +56,12 @@ void draw(SDL_Texture* texture, int x, int y)  // uses texture dimensions
 	dstrect.y = y;
 	SDL_QueryTexture(texture, nullptr, nullptr, &dstrect.w, &dstrect.h);
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
+}
+
+void draw_rect(SDL_Texture* texture, const SDL_Rect& src, int x, int y)
+{
+	SDL_Rect dest{ x, y, src.w, src.h };
+	SDL_RenderCopy(app.renderer, texture, &src, &dest);
 }
 
 void draw(SDL_Texture* texture, int x, int y, float scale)  // scales texture

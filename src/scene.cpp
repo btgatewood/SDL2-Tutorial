@@ -5,14 +5,17 @@
 
 extern App app;
 
+// TODO: Move all calls to rand to separate function definitions, or something.
+// GOAL: Allow easy configuration of random values.
+
 
 // function declarations
-// TODO: move update() and render() to top of module?
 void reset_scene();
 
 void fire_bullet();
 void fire_alien_bullet(Entity& entity);
 void spawn_enemy();
+void spawn_debris(const Entity& entity);
 void clamp_player();
 bool ship_collision(Entity& bullet);
 
@@ -21,6 +24,7 @@ void update_player();
 void update_enemy_ai();
 void update_ships();
 void update_bullets();
+void update_debris();
 
 void render();
 
@@ -80,6 +84,8 @@ void reset_scene()
 	scene.ships_tail = &player;
 	scene.bullets_tail = &scene.bullets_head;
 
+	scene.debris_list.clear();
+
 	// init player
 	player.texture = player_texture;
 	player.w = 64;
@@ -90,7 +96,7 @@ void reset_scene()
 	player.owner = PLAYER;
 
 	enemy_spawn_timer = 0;
-	scene_reset_timer = FPS * 2;
+	scene_reset_timer = FPS * 3;
 }
 
 
@@ -170,6 +176,43 @@ void spawn_enemy()
 }
 
 
+void spawn_debris(const Entity& entity)
+{
+	// get texture half width & half height
+	int w = 0;
+	int h = 0;
+	SDL_QueryTexture(entity.texture, nullptr, nullptr, &w, &h);
+	w /= 2;
+	h /= 2;
+
+	for (int y = 0; y <= h; y += h)  // why?!  // OK, got it.
+	{
+		for (int x = 0; x <= w; x += w)  // again, why?!
+		{
+			Debris debris{};
+
+			debris.texture = entity.texture;
+			// calc texture src rect (this is why)
+			debris.srcrect.x = x;  // x, then w (texture.w / 2)
+			debris.srcrect.y = y;  // y, then h (texture.h / 2)
+			debris.srcrect.w = w;
+			debris.srcrect.h = h;
+
+			debris.x = entity.x + (entity.w / 2.f);
+			debris.y = entity.y + (entity.h / 2.f);
+			debris.w = entity.w / 2;
+			debris.h = entity.h / 2;
+
+			debris.dx = static_cast<float>(rand() % 5) - (rand() % 5);  // that's clever
+			debris.dy = static_cast<float>(-(5 + rand() % 12));
+			debris.life = FPS * 2;
+
+			scene.debris_list.push_back(std::move(debris));
+		}
+	}
+}
+
+
 void clamp_player()
 {
 	if (player.health != 0)
@@ -206,9 +249,11 @@ bool ship_collision(Entity& bullet)
 
 		if (e->owner != bullet.owner && collision_point(*e, x, center_y))
 		{
-			// decrease entity & bullet health
-			e->health -= 1;
 			bullet.health = 0;
+			e->health = 0;
+
+			spawn_debris(*e);
+
 			return true;
 		}
 	}
@@ -226,6 +271,7 @@ void update()
 
 	update_ships();
 	update_bullets();
+	update_debris();
 
 	if (--enemy_spawn_timer <= 0)
 	{
@@ -333,8 +379,8 @@ void update_ships()
 
 bool is_offscreen(const Entity& entity)
 {
-	return entity.x < -entity.w || entity.x > SCREEN_WIDTH ||
-		entity.y < -entity.y || entity.y > SCREEN_HEIGHT;
+	return (entity.x < -entity.w || entity.x > SCREEN_WIDTH || 
+			entity.y < -entity.y || entity.y > SCREEN_HEIGHT);
 }
 
 
@@ -362,6 +408,28 @@ void update_bullets()
 }
 
 
+void update_debris()
+{
+	// TODO: Look up removing from vector in game programming c++ book.
+	for (auto itr = scene.debris_list.begin(); itr != scene.debris_list.end();)
+	{
+		itr->x += itr->dx;
+		itr->y += itr->dy;
+
+		itr->dy += 0.5;
+
+		if (--itr->life <= 0)
+		{
+			itr = scene.debris_list.erase(itr);
+		}
+		else
+		{
+			++itr;
+		}
+	}
+}
+
+
 void render()
 {
 	begin_scene();
@@ -382,6 +450,11 @@ void render()
 	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
 	{
 		draw(*b);
+	}
+
+	for (const Debris& d : scene.debris_list)
+	{
+		draw(d);
 	}
 
 	end_scene();
