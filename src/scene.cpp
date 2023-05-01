@@ -1,12 +1,16 @@
 // TODO: Use keyboard for movement, mouse position for aiming!!!
 //		 The player's sprite should track the mouse position 
 //		 and always be facing the cursor.
+//
+// TODO: Move all calls to rand to separate code.
+//		 Or create custom utility function to get random values.
+// GOAL: Allow easy configuration of random game settings.
+//
+// TODO: Add error checking & exception handling.
+//
 #include "main.h"
 
 extern App app;
-
-// TODO: Move all calls to rand to separate function definitions, or something.
-// GOAL: Allow easy configuration of random values.
 
 
 // function declarations
@@ -16,6 +20,7 @@ void fire_bullet();
 void fire_alien_bullet(Entity& entity);
 void spawn_enemy();
 void spawn_debris(const Entity& entity);
+void spawn_explosions(int x, int y, int num);
 void clamp_player();
 bool ship_collision(Entity& bullet);
 
@@ -25,6 +30,7 @@ void update_enemy_ai();
 void update_ships();
 void update_bullets();
 void update_debris();
+void update_explosions();
 
 void render();
 
@@ -33,10 +39,14 @@ void render();
 Scene scene;
 Entity player;
 
+SDL_Texture* background;
+int background_x;
+
 SDL_Texture* player_texture;
 SDL_Texture* bullet_texture;
 SDL_Texture* alien_texture;
 SDL_Texture* alien_bullet_texture;
+SDL_Texture* explosion_texture;
 
 int enemy_spawn_timer;
 int scene_reset_timer;
@@ -48,16 +58,15 @@ void init_scene()
 	app.delegate.update = update;
 	app.delegate.render = render;
 
-	// NOTE: these vars never change and always point to player, right?
-	//		 (...so do we really need them?)
-	// scene.ships_head.next = &player; 
-	// scene.ships_tail = &player;
-
 	// load textures
+	background = load_texture("data/background.png");  // 1920 x 1080
+	background_x = 0;
+
 	player_texture = load_texture("data/player.png");			  // 1432x1394
 	bullet_texture = load_texture("data/bullet_player.png");	  // 517x141
 	alien_texture = load_texture("data/alien.png");				  // 768x813
 	alien_bullet_texture = load_texture("data/bullet_alien.png"); // 182x35
+	explosion_texture = load_texture("data/explosion.png");		  // 96x96
 
 	reset_scene();
 }
@@ -88,8 +97,8 @@ void reset_scene()
 
 	// init player
 	player.texture = player_texture;
-	player.w = 64;
-	player.h = 64;
+	player.w = 128;
+	player.h = 128;
 	player.x = SCREEN_WIDTH / 4;
 	player.y = SCREEN_HEIGHT / 2;
 	player.health = 3;
@@ -108,8 +117,8 @@ void fire_bullet()
 	scene.bullets_tail = bullet;
 
 	bullet->texture = bullet_texture;
-	bullet->w = 32;
-	bullet->h = 8;
+	bullet->w = 64;
+	bullet->h = 16;
 
 	// position the bullet at player's center
 	bullet->x = player.x + (player.w / 2.f) - (bullet->w / 2.f);
@@ -132,8 +141,8 @@ void fire_alien_bullet(Entity& entity)
 	scene.bullets_tail = bullet;
 
 	bullet->texture = alien_bullet_texture;
-	bullet->w = 32;
-	bullet->h = 8;
+	bullet->w = 64;
+	bullet->h = 16;
 
 	bullet->x = entity.x + (entity.w / 2.f) - (bullet->w / 2.f);
 	bullet->y = entity.y + (entity.h / 2.f) - (bullet->h / 2.f);
@@ -163,8 +172,8 @@ void spawn_enemy()
 	scene.ships_tail = enemy;
 
 	enemy->texture = alien_texture;
-	enemy->w = 48;
-	enemy->h = 48;
+	enemy->w = 96;
+	enemy->h = 96;
 	enemy->x = SCREEN_WIDTH;
 	enemy->y = rand() % SCREEN_HEIGHT * 1.f;
 	enemy->dx = -(2.f + (rand() % 4));  // random speed
@@ -172,7 +181,7 @@ void spawn_enemy()
 	enemy->reload = FPS * (1 + rand() % 3);
 	enemy->owner = ALIENS;
 
-	enemy_spawn_timer = 30 + (rand() % FPS * 3);
+	enemy_spawn_timer = 30 + (rand() % FPS * 2);
 }
 
 
@@ -209,6 +218,45 @@ void spawn_debris(const Entity& entity)
 
 			scene.debris_list.push_back(std::move(debris));
 		}
+	}
+}
+
+
+void spawn_explosions(int x, int y, int num)
+{
+	for (int i = 0; i < num; ++i)
+	{
+		Explosion exp{};
+
+		exp.x = x + (rand() % 32) - (rand() % 32);
+		exp.y = y + (rand() % 32) - (rand() % 32);
+
+		exp.dx = (rand() % 10) - (rand() % 10) / 10;
+		exp.dy = (rand() % 10) - (rand() % 10) / 10;
+
+		switch (rand() % 4)
+		{
+		case 0:
+			exp.r = 255;
+			break;
+		case 1:
+			exp.r = 255;
+			exp.g = 128;
+			break;
+		case 2:
+			exp.r = 255;
+			exp.g = 255;
+			break;
+		default:
+			exp.r = 255;
+			exp.g = 255;
+			exp.b = 255;
+			break;
+		}
+
+		exp.alpha = rand() % FPS * 3;
+
+		scene.explosion_list.push_back(std::move(exp));
 	}
 }
 
@@ -250,9 +298,17 @@ bool ship_collision(Entity& bullet)
 		if (e->owner != bullet.owner && collision_point(*e, x, center_y))
 		{
 			bullet.health = 0;
-			e->health = 0;
+			e->health -= 1;
 
-			spawn_debris(*e);
+			if (e->health == 0)
+			{
+				spawn_debris(*e);
+
+				int x = e->x + (e->w / 2);
+				int y = e->y + (e->h / 2);
+				int num = 16;  // why?
+				spawn_explosions(x, y, num);
+			}
 
 			return true;
 		}
@@ -269,9 +325,16 @@ void update()
 
 	update_enemy_ai();
 
+	// update background
+	if (--background_x < -SCREEN_WIDTH)
+	{
+		background_x = 0;
+	}
+
 	update_ships();
 	update_bullets();
 	update_debris();
+	update_explosions();
 
 	if (--enemy_spawn_timer <= 0)
 	{
@@ -377,7 +440,7 @@ void update_ships()
 }
 
 
-bool is_offscreen(const Entity& entity)
+bool is_offscreen(const Entity& entity)  // secret utility function
 {
 	return (entity.x < -entity.w || entity.x > SCREEN_WIDTH || 
 			entity.y < -entity.y || entity.y > SCREEN_HEIGHT);
@@ -430,21 +493,66 @@ void update_debris()
 }
 
 
+void update_explosions()
+{
+	for (auto itr = scene.explosion_list.begin();
+		itr != scene.explosion_list.end();
+		)
+	{
+		itr->x += itr->dx;
+		itr->y += itr->dy;
+
+		itr->alpha -= 0;
+
+		if (itr->alpha <= 0)  // decrement alpha
+		{
+			itr = scene.explosion_list.erase(itr);
+		}
+		else
+		{
+			++itr;
+		}
+	}
+}
+
+
+void draw_background()
+{
+	// tiles background texture (infinite scrolling)
+	for (int x = background_x; x < SCREEN_WIDTH; x += SCREEN_WIDTH)
+	{
+		SDL_Rect dstrect{ x,0,SCREEN_WIDTH,SCREEN_HEIGHT };
+		SDL_RenderCopy(app.renderer, background, nullptr, &dstrect);
+	}
+}
+
+
+void draw_explosions()
+{
+	SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_ADD);
+
+	SDL_SetTextureBlendMode(explosion_texture, SDL_BLENDMODE_ADD);
+	for (Explosion& exp : scene.explosion_list)
+	{
+		SDL_SetTextureColorMod(explosion_texture, exp.r, exp.g, exp.b);
+		SDL_SetTextureAlphaMod(explosion_texture, exp.alpha);
+
+		draw(explosion_texture, exp.x, exp.y);
+	}
+
+	SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_NONE);
+}
+
+
 void render()
 {
 	begin_scene();
 
-	// NOTE: we stopped centering the texture to the entity's position here 
-	//		 to make collision detection easier.
-	// float x = player.x - (player.w / 2.f);
-	// float y = player.y - (player.h / 2.f);
-	// draw(player.texture, x, y, player.w, player.h);
+	draw_background();
 
-	draw(player);
-
-	for (Entity* e = player.next; e != nullptr; e = e->next)
+	if (player.health > 0)
 	{
-		draw(*e);
+		draw(player);
 	}
 
 	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
@@ -452,10 +560,17 @@ void render()
 		draw(*b);
 	}
 
+	for (Entity* e = player.next; e != nullptr; e = e->next)  // ships
+	{
+		draw(*e);
+	}
+
 	for (const Debris& d : scene.debris_list)
 	{
 		draw(d);
 	}
+
+	draw_explosions();
 
 	end_scene();
 }

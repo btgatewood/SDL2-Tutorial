@@ -64,13 +64,26 @@ struct Debris
 	int life;
 };
 
+struct Explosion
+{
+	float x;
+	float y;
+	int w;
+	int h;
+	float dx;
+	float dy;
+	int r, g, b;
+	int alpha;
+};
+
 struct Scene
 {
-	// Entity ships_head;  // refactored, using player object as container
+	// Entity ships_head;  // refactored; using player object as container
 	Entity* ships_tail;
 	Entity bullets_head;  // object used as static container
 	Entity* bullets_tail;
 	std::vector<Debris> debris_list;
+	std::vector<Explosion> explosion_list;
 };
 
 
@@ -90,6 +103,8 @@ void draw(const Debris& debris);  // draws a rect from the texture
 void draw(SDL_Texture* texture, float x, float y, int w, int h);
 void draw_rect(SDL_Texture* texture, const SDL_Rect& srcrect,
 			   float x, float y, int w, int h);
+
+void draw(SDL_Texture* texture, int x, int y);  // uses texture dimensions
 
 // input
 void on_key_down(SDL_KeyboardEvent* event);
