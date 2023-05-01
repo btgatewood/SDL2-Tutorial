@@ -175,7 +175,7 @@ void spawn_enemy()
 	enemy->w = 96;
 	enemy->h = 96;
 	enemy->x = SCREEN_WIDTH;
-	enemy->y = rand() % SCREEN_HEIGHT * 1.f;
+	enemy->y = rand() % (SCREEN_HEIGHT - enemy->h);
 	enemy->dx = -(2.f + (rand() % 4));  // random speed
 	enemy->health = 1;
 	enemy->reload = FPS * (1 + rand() % 3);
@@ -269,9 +269,9 @@ void clamp_player()
 		{
 			player.x = 0;
 		}
-		if (player.x > SCREEN_WIDTH - player.w)
+		if (player.x > SCREEN_WIDTH / 2 - player.w / 2)
 		{
-			player.x = static_cast<float>(SCREEN_WIDTH - player.w);
+			player.x = static_cast<float>(SCREEN_WIDTH / 2 - player.w / 2);
 		}
 
 		if (player.y < 0)

@@ -99,11 +99,9 @@ void end_scene();
 
 void draw(const Entity& entity);
 void draw(const Debris& debris);  // draws a rect from the texture
-
 void draw(SDL_Texture* texture, float x, float y, int w, int h);
 void draw_rect(SDL_Texture* texture, const SDL_Rect& srcrect,
 			   float x, float y, int w, int h);
-
 void draw(SDL_Texture* texture, int x, int y);  // uses texture dimensions
 
 // input

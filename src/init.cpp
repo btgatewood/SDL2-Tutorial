@@ -35,7 +35,7 @@ void init_SDL()
 
 	IMG_Init(IMG_INIT_PNG);  // init png support needs error checking
 
-	SDL_ShowCursor(0);  // hide the cursor
+	// SDL_ShowCursor(0);  // hide the cursor
 }
 
 
