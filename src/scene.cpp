@@ -16,11 +16,13 @@ extern App app;
 // function declarations
 void reset_scene();
 
-void fire_bullet();
-void fire_alien_bullet(Entity& entity);
-void spawn_enemy();
-void spawn_debris(const Entity& entity);
-void spawn_explosions(int x, int y, int num);
+void add_player_bullet();
+void add_alien_bullet(Entity& entity);
+void add_enemy();
+void add_debris(const Entity& entity);
+void add_explosions(int x, int y, int num);
+void add_score_powerup(float x, float y);
+
 void clamp_player();
 bool is_ship_collision(Entity& bullet);
 void on_ship_collision(Entity& bullet, Entity& ship);
@@ -32,6 +34,7 @@ void update_enemies();
 void update_bullets();
 void update_debris();
 void update_explosions();
+void update_powerups();
 
 void render();
 void render_text();
@@ -49,6 +52,7 @@ SDL_Texture* bullet_texture;
 SDL_Texture* alien_texture;
 SDL_Texture* alien_bullet_texture;
 SDL_Texture* explosion_texture;
+SDL_Texture* powerup_texture;
 
 int enemy_spawn_timer;
 int scene_reset_timer;
@@ -70,6 +74,7 @@ void init_scene()
 	alien_texture = load_texture("data/alien.png");				  // 768x813
 	alien_bullet_texture = load_texture("data/bullet_alien.png"); // 182x35
 	explosion_texture = load_texture("data/explosion.png");		  // 96x96
+	powerup_texture = load_texture("data/bonus.png");			  // 300x300
 
 	load_sounds();
 	load_music("data/music.ogg");
@@ -85,13 +90,14 @@ void reset_scene()
 	scene.bullets.clear();
 	scene.debris_list.clear();
 	scene.explosions.clear();
+	scene.powerups.clear();
 
 	scene.score = 0;
 
 	// init player
 	player.texture = player_texture;
-	player.w = 128;
-	player.h = 128;
+	player.w = 96;
+	player.h = 96;
 	player.x = SCREEN_WIDTH / 4.f;
 	player.y = SCREEN_HEIGHT / 2.f;
 	player.health = 3;
@@ -102,7 +108,7 @@ void reset_scene()
 }
 
 
-void fire_bullet()
+void add_player_bullet()
 {
 	Entity bullet{};
 
@@ -125,7 +131,7 @@ void fire_bullet()
 }
 
 
-void fire_alien_bullet(Entity& entity)
+void add_alien_bullet(Entity& entity)
 {
 	Entity bullet{};
 
@@ -155,7 +161,7 @@ void fire_alien_bullet(Entity& entity)
 }
 
 
-void spawn_enemy()
+void add_enemy()
 {
 	Entity enemy{};
 
@@ -175,7 +181,7 @@ void spawn_enemy()
 }
 
 
-void spawn_debris(const Entity& entity)
+void add_debris(const Entity& entity)
 {
 	// get texture half width & half height
 	int w = 0;
@@ -212,7 +218,7 @@ void spawn_debris(const Entity& entity)
 }
 
 
-void spawn_explosions(int x, int y, int num)
+void add_explosions(int x, int y, int num)
 {
 	for (int i = 0; i < num; ++i)
 	{
@@ -251,6 +257,21 @@ void spawn_explosions(int x, int y, int num)
 }
 
 
+void add_score_powerup(float x, float y)
+{
+	Entity powerup{};
+	powerup.texture = powerup_texture;
+	powerup.x = x;
+	powerup.y = y;
+	powerup.w = 48;
+	powerup.h = 48;
+	powerup.dx = static_cast<float>(-(rand() % 5));  // can be zero
+	powerup.dy = static_cast<float>((rand() % 5) - (rand() % 5));
+	powerup.health = FPS * 8;  // 8 sec lifespan
+	scene.powerups.push_back(std::move(powerup));
+}
+
+
 void clamp_player()
 {
 	if (player.health != 0)
@@ -271,6 +292,36 @@ void clamp_player()
 		if (player.y > SCREEN_HEIGHT - player.h)
 		{
 			player.y = static_cast<float>(SCREEN_HEIGHT - player.h);
+		}
+	}
+}
+
+
+void on_ship_collision(Entity& bullet, Entity& ship)
+{
+	bullet.health = 0;
+	ship.health -= 1;
+
+	if (ship.health == 0)
+	{
+		add_debris(ship);
+
+		int x = static_cast<int>(ship.x + (ship.w / 2.f));
+		int y = static_cast<int>(ship.y + (ship.h / 2.f));
+		int num = 16;  // why?
+		add_explosions(x, y, num);
+
+		if (&ship == &player)
+		{
+			play_sound(SND_PLAYER_DEATH, CH_PLAYER);
+		}
+		else
+		{
+			float x = ship.x - (ship.w / 2.f);
+			float y = ship.y - (ship.h / 2.f);
+			add_score_powerup(x, y);
+
+			play_sound(SND_ALIEN_DEATH, CH_ANY);
 		}
 	}
 }
@@ -305,34 +356,6 @@ bool is_ship_collision(Entity& bullet)
 }
 
 
-void on_ship_collision(Entity& bullet, Entity& ship)
-{
-	bullet.health = 0;
-	ship.health -= 1;
-
-	if (ship.health == 0)
-	{
-		spawn_debris(ship);
-
-		int x = static_cast<int>(ship.x + (ship.w / 2.f));
-		int y = static_cast<int>(ship.y + (ship.h / 2.f));
-		int num = 16;  // why?
-		spawn_explosions(x, y, num);
-
-		if (&ship == &player)
-		{
-			play_sound(SND_PLAYER_DEATH, CH_PLAYER);
-		}
-		else
-		{
-			play_sound(SND_ALIEN_DEATH, CH_ANY);
-			++scene.score;
-			high_score = std::max(scene.score, high_score);
-		}
-	}
-}
-
-
 void update()
 {
 	update_player();
@@ -350,10 +373,11 @@ void update()
 	update_bullets();
 	update_debris();
 	update_explosions();
+	update_powerups();
 
 	if (--enemy_spawn_timer <= 0)
 	{
-		spawn_enemy();
+		add_enemy();
 	}
 
 	if (player.health <= 0)
@@ -410,7 +434,7 @@ void update_player()
 	{
 		if (player.reload == 0)
 		{
-			fire_bullet();
+			add_player_bullet();
 			play_sound(SND_PLAYER_FIRE, CH_PLAYER);
 		}
 	}
@@ -423,7 +447,7 @@ void update_enemy_ai()
 	{
 		if (--enemy.reload <= 0)  // decrement reload timer
 		{
-			fire_alien_bullet(enemy);
+			add_alien_bullet(enemy);
 			play_sound(SND_ALIEN_FIRE, CH_ALIEN_FIRE);
 		}
 	}
@@ -520,6 +544,57 @@ void update_explosions()
 }
 
 
+void update_powerups()
+{
+	for (Entity& powerup : scene.powerups)
+	{
+		// move
+		powerup.x += powerup.dx;
+		powerup.y += powerup.dy;
+
+		// clamp (bounce)
+		if (powerup.x < 0)
+		{
+			powerup.x = 0.f;
+			powerup.dx = -powerup.dx;
+		}
+		else if (powerup.x + powerup.w > SCREEN_WIDTH)
+		{
+			powerup.x = static_cast<float>(SCREEN_WIDTH - powerup.w);
+			powerup.dx = -powerup.dx;
+		}
+
+		if (powerup.y < 0)
+		{
+			powerup.y = 0.f;
+			powerup.dy = -powerup.dy;
+		}
+		else if (powerup.y + powerup.h > SCREEN_HEIGHT)
+		{
+			powerup.y = static_cast<float>(SCREEN_HEIGHT - powerup.h);
+		}
+
+		// player collision
+		if (player.health > 0 && collision_rect(powerup, player))
+		{
+			powerup.health = 0;
+			
+			++scene.score;
+			high_score = std::max(scene.score, high_score);
+
+			play_sound(SND_POWERUP, CH_POWERUP);
+		}
+
+		--powerup.health;  // decrement lifespan timer
+	}
+
+	// remove dead powerups 
+	auto result = std::remove_if(scene.powerups.begin(), scene.powerups.end(),
+		[](Entity& powerup) { return powerup.health <= 0; });  // lambda
+	scene.powerups.erase(result, scene.powerups.end());
+}
+
+
 void draw_background()
 {
 	// tiles background texture (infinite scrolling)
@@ -554,14 +629,19 @@ void render()
 
 	draw_background();
 
-	if (player.health > 0)
+	for (const Entity& powerup : scene.powerups)
 	{
-		draw(player);
+		draw(powerup);
 	}
 
 	for (const Entity& bullet : scene.bullets)
 	{
 		draw(bullet);
+	}
+
+	if (player.health > 0)
+	{
+		draw(player);
 	}
 
 	for (const Entity& ship : scene.enemies)  // draws player
@@ -584,14 +664,14 @@ void render()
 
 void render_text()
 {
-	draw_text(16, 16, "SCORE: " + std::to_string(scene.score));
+	draw_text(10, 10, "SCORE: " + std::to_string(scene.score));
 
 	if (scene.score > 0 && scene.score == high_score)
 	{
-		draw_text(1024, 16, "HIGH SCORE: " + std::to_string(high_score), 0, 255, 0);  // green
+		draw_text(1000, 10, "HIGH SCORE: " + std::to_string(high_score), 0, 255, 0);  // green
 	}
 	else
 	{
-		draw_text(1024, 16, "HIGH SCORE: " + std::to_string(high_score));
+		draw_text(1000, 10, "HIGH SCORE: " + std::to_string(high_score));
 	}
 }

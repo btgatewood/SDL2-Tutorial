@@ -19,7 +19,7 @@ const int MAX_LINE_LENGTH = 1024;
 const int GLYPH_WIDTH = 18;
 const int GLYPH_HEIGHT = 28;
 
-const int PLAYER_SPEED = 4;
+const int PLAYER_SPEED = 5;
 const int PLAYER_BULLET_SPEED = 16;
 const int ALIEN_BULLET_SPEED = 8;
 
@@ -32,7 +32,8 @@ enum Channel
 {
 	CH_ANY = -1,
 	CH_PLAYER,
-	CH_ALIEN_FIRE
+	CH_ALIEN_FIRE,
+	CH_POWERUP,
 };
 
 enum Sound
@@ -41,6 +42,7 @@ enum Sound
 	SND_ALIEN_FIRE,
 	SND_PLAYER_DEATH,
 	SND_ALIEN_DEATH,
+	SND_POWERUP,
 	NUM_SOUNDS,
 };
 
@@ -106,6 +108,7 @@ struct Scene
 	std::vector<Entity> bullets;
 	std::vector<Debris> debris_list;
 	std::vector<Explosion> explosions;
+	std::vector<Entity> powerups;
 	int score;
 };
 

@@ -42,8 +42,10 @@ void init_SDL()
 		std::cout << "Failed to initialize SDL Mixer.\n";
 		// exit(1);
 	}
-
-	Mix_AllocateChannels(MAX_MIX_CHANNELS);
+	else
+	{
+		Mix_AllocateChannels(MAX_MIX_CHANNELS);
+	}
 }
 
 

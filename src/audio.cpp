@@ -9,6 +9,7 @@ void load_sounds()
 	sounds[SND_ALIEN_FIRE] = Mix_LoadWAV("data/alien_fire.ogg");
 	sounds[SND_PLAYER_DEATH] = Mix_LoadWAV("data/player_death.ogg");
 	sounds[SND_ALIEN_DEATH] = Mix_LoadWAV("data/alien_death.ogg");
+	sounds[SND_POWERUP] = Mix_LoadWAV("data/powerup.ogg");
 }
 
 void load_music(const char* file)
