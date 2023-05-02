@@ -36,6 +36,14 @@ void init_SDL()
 	IMG_Init(IMG_INIT_PNG);  // init png support needs error checking
 
 	// SDL_ShowCursor(0);  // hide the cursor
+
+	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 1024) == -1)
+	{
+		std::cout << "Failed to initialize SDL Mixer.\n";
+		// exit(1);
+	}
+
+	Mix_AllocateChannels(MAX_MIX_CHANNELS);
 }
 
 

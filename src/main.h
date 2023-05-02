@@ -4,6 +4,8 @@
 #include <vector>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_mixer.h>
+#include <SDL_ttf.h>
 
 
 // config
@@ -16,8 +18,26 @@ const int PLAYER_SPEED = 4;
 const int PLAYER_BULLET_SPEED = 16;
 const int ALIEN_BULLET_SPEED = 8;
 
-const int PLAYER = 0;
+const int PLAYER = 0;  // entity.owner enum
 const int ALIENS = 1;
+
+const int MAX_MIX_CHANNELS = 8;
+
+enum Channel
+{
+	CH_ANY = -1,
+	CH_PLAYER,
+	CH_ALIEN_FIRE
+};
+
+enum Sound
+{
+	SND_PLAYER_FIRE,
+	SND_ALIEN_FIRE,
+	SND_PLAYER_DEATH,
+	SND_ALIEN_DEATH,
+	NUM_SOUNDS,
+};
 
 
 // structs
@@ -78,7 +98,7 @@ struct Explosion
 
 struct Scene
 {
-	std::vector<Entity> ships;
+	std::vector<Entity> enemies;
 	std::vector<Entity> bullets;
 	std::vector<Debris> debris_list;
 	std::vector<Explosion> explosions;
@@ -114,3 +134,9 @@ void calculate_slope(int x1, int y1, int x2, int y2, float& dx, float& dy);
 
 // scene
 void init_scene();  // should this be in init.cpp?
+
+// audio
+void load_sounds();
+void load_music(const char* file);
+void play_music(bool loop);
+void play_sound(int id, int channel);

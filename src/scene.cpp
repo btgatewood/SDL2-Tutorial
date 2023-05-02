@@ -23,11 +23,12 @@ void spawn_debris(const Entity& entity);
 void spawn_explosions(int x, int y, int num);
 void clamp_player();
 bool is_ship_collision(Entity& bullet);
+void on_ship_collision(Entity& bullet, Entity& ship);
 
 void update();
 void update_player();
 void update_enemy_ai();
-void update_ships();
+void update_enemies();
 void update_bullets();
 void update_debris();
 void update_explosions();
@@ -68,13 +69,17 @@ void init_scene()
 	alien_bullet_texture = load_texture("data/bullet_alien.png"); // 182x35
 	explosion_texture = load_texture("data/explosion.png");		  // 96x96
 
+	load_sounds();
+	load_music("data/music.ogg");
+	play_music(true);
+
 	reset_scene();
 }
 
 
 void reset_scene()
 {
-	scene.ships.clear();
+	scene.enemies.clear();
 	scene.bullets.clear();
 	scene.debris_list.clear();
 	scene.explosions.clear();
@@ -160,7 +165,7 @@ void spawn_enemy()
 	enemy.reload = FPS * (1 + rand() % 3);
 	enemy.owner = ALIENS;
 
-	scene.ships.push_back(std::move(enemy));
+	scene.enemies.push_back(std::move(enemy));
 
 	enemy_spawn_timer = 30 + (rand() % FPS * 1);
 }
@@ -267,23 +272,6 @@ void clamp_player()
 }
 
 
-void on_ship_collision(Entity& bullet, Entity& ship)
-{
-	bullet.health = 0;
-	ship.health -= 1;
-
-	if (ship.health == 0)
-	{
-		spawn_debris(ship);
-
-		int x = static_cast<int>(ship.x + (ship.w / 2.f));
-		int y = static_cast<int>(ship.y + (ship.h / 2.f));
-		int num = 16;  // why?
-		spawn_explosions(x, y, num);
-	}
-}
-
-
 bool is_ship_collision(Entity& bullet)
 {
 	// check for collision with player
@@ -297,7 +285,7 @@ bool is_ship_collision(Entity& bullet)
 	}
 
 	// check for collision with aliens
-	for (Entity& ship : scene.ships)
+	for (Entity& ship : scene.enemies)
 	{
 		float x = bullet.x + (bullet.w * 0.25f);  // mid-left for alien bullets
 		float center_y = bullet.y + (bullet.h / 2.f);
@@ -310,6 +298,32 @@ bool is_ship_collision(Entity& bullet)
 	}
 
 	return false;
+}
+
+
+void on_ship_collision(Entity& bullet, Entity& ship)
+{
+	bullet.health = 0;
+	ship.health -= 1;
+
+	if (ship.health == 0)
+	{
+		spawn_debris(ship);
+
+		int x = static_cast<int>(ship.x + (ship.w / 2.f));
+		int y = static_cast<int>(ship.y + (ship.h / 2.f));
+		int num = 16;  // why?
+		spawn_explosions(x, y, num);
+
+		if (&ship == &player)
+		{
+			play_sound(SND_PLAYER_DEATH, CH_PLAYER);
+		}
+		else
+		{
+			play_sound(SND_ALIEN_DEATH, CH_ANY);
+		}
+	}
 }
 
 
@@ -326,7 +340,7 @@ void update()
 		background_x = 0;
 	}
 
-	update_ships();
+	update_enemies();
 	update_bullets();
 	update_debris();
 	update_explosions();
@@ -391,6 +405,7 @@ void update_player()
 		if (player.reload == 0)
 		{
 			fire_bullet();
+			play_sound(SND_PLAYER_FIRE, CH_PLAYER);
 		}
 	}
 }
@@ -398,27 +413,20 @@ void update_player()
 
 void update_enemy_ai()
 {
-	for (int i = 0; i < scene.ships.size(); ++i)
+	for (Entity& enemy : scene.enemies)  // BUG?!  // Nope.
 	{
-		if (--scene.ships[i].reload <= 0)  // decrement reload timer
+		if (--enemy.reload <= 0)  // decrement reload timer
 		{
-			fire_alien_bullet(scene.ships[i]);
+			fire_alien_bullet(enemy);
+			play_sound(SND_ALIEN_FIRE, CH_ALIEN_FIRE);
 		}
 	}
-
-	//for (Entity& enemy : scene.ships)  // BUG?!  // Nope.
-	//{
-	//	if (--enemy.reload <= 0)  // decrement reload timer
-	//	{
-	//		fire_alien_bullet(enemy);
-	//	}
-	//}
 }
 
 
-void update_ships()
+void update_enemies()
 {
-	for (auto itr = scene.ships.begin(); itr != scene.ships.end();)
+	for (auto itr = scene.enemies.begin(); itr != scene.enemies.end();)
 	{
 		itr->x += itr->dx;
 		itr->y += itr->dy;
@@ -426,7 +434,7 @@ void update_ships()
 		// remove enemy from list if it's dead or offscreen
 		if (itr->health <= 0 || itr->x < -itr->w)  
 		{
-			itr = scene.ships.erase(itr);
+			itr = scene.enemies.erase(itr);
 		}
 		else
 		{
@@ -487,8 +495,7 @@ void update_debris()
 void update_explosions()
 {
 	for (auto itr = scene.explosions.begin();
-		itr != scene.explosions.end();
-		)
+		itr != scene.explosions.end(); )
 	{
 		itr->x += itr->dx;
 		itr->y += itr->dy;
@@ -551,7 +558,7 @@ void render()
 		draw(bullet);
 	}
 
-	for (const Entity& ship : scene.ships)  // draws player
+	for (const Entity& ship : scene.enemies)  // draws player
 	{
 		draw(ship);
 	}

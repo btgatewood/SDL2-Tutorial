@@ -33,7 +33,7 @@
     <ClCompile Include="src\physics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\update.cpp">
+    <ClCompile Include="src\audio.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
