@@ -276,9 +276,9 @@ void clamp_player()
 		{
 			player.x = 0;
 		}
-		if (player.x > SCREEN_WIDTH / 2.f - player.w / 2.f)
+		if (player.x > SCREEN_WIDTH * 0.75f - player.w / 2.f)
 		{
-			player.x = static_cast<float>(SCREEN_WIDTH / 2.f - player.w / 2.f);
+			player.x = SCREEN_WIDTH * 0.75f - player.w / 2.f;
 		}
 
 		if (player.y < 0.f)
@@ -564,6 +564,7 @@ void update_powerups()
 		else if (powerup.y + powerup.h > SCREEN_HEIGHT)
 		{
 			powerup.y = static_cast<float>(SCREEN_HEIGHT - powerup.h);
+			powerup.dy = -powerup.dy;
 		}
 
 		// player collision

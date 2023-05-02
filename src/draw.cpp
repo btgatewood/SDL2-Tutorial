@@ -2,15 +2,34 @@
 
 extern App app;
 
+SDL_Texture* get_texture(const char* file)
+{
+	for (const Texture& tex : app.textures)
+	{
+		if (tex.filename == file)
+		{
+			return tex.texture;
+		}
+	}
+
+	return nullptr;
+}
 
 SDL_Texture* load_texture(const char* file)
 {
-	SDL_Texture* texture;
-	SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO, 
-		"Loading %s", file);
-	texture = IMG_LoadTexture(app.renderer, file);
-	return texture;
-}
+	SDL_Texture* sdl_texture = get_texture(file);
+
+	if (!sdl_texture)
+	{
+		SDL_LogMessage(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO,
+			"Loading %s", file);
+		sdl_texture = IMG_LoadTexture(app.renderer, file);
+		
+		app.textures.push_back(Texture{ file, sdl_texture });
+	}
+
+	return sdl_texture;
+} 
 
 void begin_scene()
 {

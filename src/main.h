@@ -58,12 +58,19 @@ struct Delegate
 	void (*render)(void);
 };
 
+struct Texture
+{
+	std::string filename;
+	SDL_Texture* texture;
+};
+
 struct App
 {
 	SDL_Renderer* renderer;
 	SDL_Window* window;
-	Delegate delegate;
 	int keyboard[NUM_KEYS];
+	Delegate delegate;
+	std::vector<Texture> textures;
 };
 
 struct Entity
