@@ -49,6 +49,13 @@ enum Sound
 	NUM_SOUNDS,
 };
 
+enum Text
+{
+	ALIGN_LEFT,
+	ALIGN_CENTER,
+	ALIGN_RIGHT
+};
+
 
 // structs
 struct Delegate
@@ -71,6 +78,7 @@ struct App
 	int keyboard[NUM_KEYS];
 	Delegate delegate;
 	std::vector<Texture> textures;
+	std::string input_text;
 };
 
 struct Entity
@@ -124,6 +132,7 @@ struct Scene
 
 struct HighScore
 {
+	std::string name;
 	int score;
 	bool recent;
 };
@@ -133,7 +142,7 @@ struct HighScore
 void init_SDL();
 void cleanup();
 void init_game();
-// TODO: void init_scene();
+// TODO: move init_scene() to here
 
 // draw
 SDL_Texture* load_texture(const char* file);  // TODO: destroy textures?
@@ -151,7 +160,7 @@ void draw_rect(SDL_Texture* texture, const SDL_Rect& src, int x, int y);
 
 // text
 void init_font();
-void draw_text(int x, int y, const std::string& str, 
+void draw_text(int x, int y, int align, const std::string& str, 
 			   int r = 255, int g = 255, int b = 255);
 
 // input

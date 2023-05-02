@@ -1,19 +1,19 @@
 #include "main.h"
 
-
 App app;
 bool quit = false;
 
-
 void process_events()
 {
+	app.input_text.clear();
+
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
 		switch (event.type)
 		{
 		case SDL_QUIT:  // TODO: quit on escape key
-			quit = true;
+			quit = true;  // TODO: make quit global and move to input.cpp?
 			break;
 
 		case SDL_KEYDOWN:
@@ -22,10 +22,13 @@ void process_events()
 		case SDL_KEYUP:
 			on_key_up(&event.key);
 			break;
+
+		case SDL_TEXTINPUT:
+			app.input_text = event.text.text;
+			break;
 		}
 	}
 }
-
 
 void cap_frame_rate()
 {
@@ -54,7 +57,6 @@ void cap_frame_rate()
 	prev_time = SDL_GetTicks64();
 }
 
-
 int main(int argc, char* argv[])
 {
 	unsigned int seed = static_cast<unsigned int>(time(nullptr));
@@ -72,7 +74,7 @@ int main(int argc, char* argv[])
 		begin_scene();
 		app.delegate.render();
 		end_scene();
-		cap_frame_rate();  // TODO: Test frame rate.
+		cap_frame_rate();  // TODO: test frame rate
 	}
 
 	cleanup();

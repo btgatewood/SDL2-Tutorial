@@ -63,18 +63,12 @@ void init_scene()
 	app.delegate.render = render;
 
 	// load textures
-	init_background();
-
 	player_texture = load_texture("data/player.png");			  // 1432x1394
 	bullet_texture = load_texture("data/bullet_player.png");	  // 517x141
 	alien_texture = load_texture("data/alien.png");				  // 768x813
 	alien_bullet_texture = load_texture("data/bullet_alien.png"); // 182x35
 	explosion_texture = load_texture("data/explosion.png");		  // 96x96
 	powerup_texture = load_texture("data/bonus.png");			  // 300x300
-
-	load_sounds();
-	load_music("data/music.ogg");
-	play_music(true);
 
 	reset_scene();
 }
@@ -635,14 +629,16 @@ static void render()
 
 void render_text()
 {
-	draw_text(10, 10, "SCORE: " + std::to_string(scene.score));
+	draw_text(8, 8, ALIGN_LEFT, "SCORE: " + std::to_string(scene.score));
 
 	if (scene.score > 0 && scene.score == high_score)
 	{
-		draw_text(1000, 10, "HIGH SCORE: " + std::to_string(high_score), 255, 255, 0);  // yellow
+		draw_text(1024, 8, ALIGN_LEFT, "HIGH SCORE: " + 
+				  std::to_string(high_score), 255, 255, 0);  // yellow
 	}
 	else
 	{
-		draw_text(1000, 10, "HIGH SCORE: " + std::to_string(high_score));
+		draw_text(1024, 8, ALIGN_LEFT, "HIGH SCORE: " + 
+				  std::to_string(high_score));
 	}
 }
