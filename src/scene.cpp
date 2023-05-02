@@ -44,9 +44,6 @@ void render_text();
 Scene scene;
 Entity player;
 
-SDL_Texture* background;
-int background_x;
-
 SDL_Texture* player_texture;
 SDL_Texture* bullet_texture;
 SDL_Texture* alien_texture;
@@ -66,8 +63,7 @@ void init_scene()
 	app.delegate.render = render;
 
 	// load textures
-	background = load_texture("data/background.png");  // 1920 x 1080
-	background_x = 0;
+	init_background();
 
 	player_texture = load_texture("data/player.png");			  // 1432x1394
 	bullet_texture = load_texture("data/bullet_player.png");	  // 517x141
@@ -355,20 +351,14 @@ bool is_ship_collision(Entity& bullet)
 	return false;
 }
 
-
-void update()
+static void update()
 {
+	update_background();
+
 	update_player();
 	clamp_player();
 
 	update_enemy_ai();
-
-	// update background
-	if (--background_x < -SCREEN_WIDTH)
-	{
-		background_x = 0;
-	}
-
 	update_enemies();
 	update_bullets();
 	update_debris();
@@ -386,7 +376,9 @@ void update()
 
 		if (scene_reset_timer <= 0)
 		{
-			reset_scene();
+			// reset_scene();
+			add_highscore(scene.score);
+			init_highscores();
 		}
 	}
 }
@@ -595,17 +587,6 @@ void update_powerups()
 }
 
 
-void draw_background()
-{
-	// tiles background texture (infinite scrolling)
-	for (int x = background_x; x < SCREEN_WIDTH; x += SCREEN_WIDTH)
-	{
-		SDL_Rect dstrect{ x,0,SCREEN_WIDTH,SCREEN_HEIGHT };
-		SDL_RenderCopy(app.renderer, background, nullptr, &dstrect);
-	}
-}
-
-
 void draw_explosions()
 {
 	SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_ADD);
@@ -623,42 +604,31 @@ void draw_explosions()
 }
 
 
-void render()
+static void render()
 {
-	begin_scene();
-
 	draw_background();
-
 	for (const Entity& powerup : scene.powerups)
 	{
 		draw(powerup);
 	}
-
 	for (const Entity& bullet : scene.bullets)
 	{
 		draw(bullet);
 	}
-
 	if (player.health > 0)
 	{
 		draw(player);
 	}
-
 	for (const Entity& ship : scene.enemies)  // draws player
 	{
 		draw(ship);
 	}
-
-	for (const Debris& d : scene.debris_list)
+	for (const Debris& debris : scene.debris_list)
 	{
-		draw(d);
+		draw(debris);
 	}
-
 	draw_explosions();
-
 	render_text();
-
-	end_scene();
 }
 
 
@@ -668,7 +638,7 @@ void render_text()
 
 	if (scene.score > 0 && scene.score == high_score)
 	{
-		draw_text(1000, 10, "HIGH SCORE: " + std::to_string(high_score), 0, 255, 0);  // green
+		draw_text(1000, 10, "HIGH SCORE: " + std::to_string(high_score), 255, 255, 0);  // yellow
 	}
 	else
 	{

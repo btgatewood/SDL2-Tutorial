@@ -20,6 +20,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\audio.cpp" />
+    <ClCompile Include="src\background.cpp" />
+    <ClCompile Include="src\highscores.cpp" />
     <ClCompile Include="src\draw.cpp" />
     <ClCompile Include="src\init.cpp" />
     <ClCompile Include="src\input.cpp" />

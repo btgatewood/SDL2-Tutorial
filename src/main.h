@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>  // std::cout for printing to console
+#include <sstream>
 #include <string>
 #include <vector>
 #include <SDL.h>
@@ -25,6 +26,8 @@ const int ALIEN_BULLET_SPEED = 8;
 
 const int PLAYER = 0;  // entity.owner enum
 const int ALIENS = 1;
+
+const int NUM_HIGHSCORES = 8;
 
 const int MAX_MIX_CHANNELS = 8;
 
@@ -112,10 +115,18 @@ struct Scene
 	int score;
 };
 
+struct HighScore
+{
+	int score;
+	bool recent;
+};
+
 
 // init
 void init_SDL();
 void cleanup();
+void init_game();
+// TODO: void init_scene();
 
 // draw
 SDL_Texture* load_texture(const char* file);  // TODO: destroy textures?
@@ -143,7 +154,6 @@ void on_key_up(SDL_KeyboardEvent* event);
 // physics
 bool collision_point(const Entity& e, float x, float y);
 bool collision_rect(const Entity& e1, const Entity& e2);
-
 void calculate_slope(int x1, int y1, int x2, int y2, float& dx, float& dy);
 
 // scene
@@ -154,3 +164,13 @@ void load_sounds();
 void load_music(const char* file);
 void play_music(bool loop);
 void play_sound(int id, int channel);
+
+// background
+void init_background();
+void update_background();
+void draw_background();
+
+// highscores
+void init_highscore_table();
+void init_highscores();
+void add_highscore(int score);

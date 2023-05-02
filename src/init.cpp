@@ -51,8 +51,22 @@ void init_SDL()
 
 void cleanup()
 {
+	Mix_Quit();
 	IMG_Quit();
 	SDL_DestroyRenderer(app.renderer);
 	SDL_DestroyWindow(app.window);
 	SDL_Quit();
+}
+
+
+void init_game()
+{
+	init_background();
+	init_font();
+
+	load_sounds();
+	load_music("data/music.ogg");
+	play_music(true);
+
+	init_highscore_table();
 }

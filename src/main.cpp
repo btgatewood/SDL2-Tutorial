@@ -62,14 +62,16 @@ int main(int argc, char* argv[])
 	std::cout << "Seeded rng with {" << seed << "}.\n";
 
 	init_SDL();
-	init_scene();
-	init_font();
+	init_game();
+	init_highscores();
 
 	while (!quit)
 	{
 		process_events();
 		app.delegate.update();
+		begin_scene();
 		app.delegate.render();
+		end_scene();
 		cap_frame_rate();  // TODO: Test frame rate.
 	}
 
