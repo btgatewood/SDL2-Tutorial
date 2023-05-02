@@ -50,14 +50,14 @@ void cap_frame_rate()
 		wait = 17;
 	}
 
-	SDL_Delay(wait);
+	SDL_Delay(static_cast<Uint32>(wait));
 	prev_time = SDL_GetTicks64();
 }
 
 
 int main(int argc, char* argv[])
 {
-	auto seed = time(nullptr);
+	unsigned int seed = static_cast<unsigned int>(time(nullptr));
 	srand(seed);
 	std::cout << "Seeded rng with {" << seed << "}.\n";
 

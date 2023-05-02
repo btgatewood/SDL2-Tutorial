@@ -25,6 +25,7 @@
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\physics.cpp" />
     <ClCompile Include="src\scene.cpp" />
+    <ClCompile Include="src\update.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main.h" />

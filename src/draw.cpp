@@ -48,11 +48,11 @@ void draw_rect(SDL_Texture* texture, const SDL_Rect& srcrect,
 	SDL_RenderCopy(app.renderer, texture, &srcrect, &dstrect);
 }
 
-void draw(SDL_Texture* texture, int x, int y)  // uses texture dimensions
+void draw(SDL_Texture* texture, float x, float y)  // uses texture dimensions
 {
 	SDL_Rect dstrect;
-	dstrect.x = x;
-	dstrect.y = y;
+	dstrect.x = static_cast<int>(x);  // TODO: round to int?
+	dstrect.y = static_cast<int>(y);
 	SDL_QueryTexture(texture, nullptr, nullptr, &dstrect.w, &dstrect.h);
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
 }

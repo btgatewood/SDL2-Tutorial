@@ -2,8 +2,8 @@
 //		 The player's sprite should track the mouse position 
 //		 and always be facing the cursor.
 //
-// TODO: Move all calls to rand to separate code.
-//		 Or create custom utility function to get random values.
+// TODO: Move all calls to rand to separate code;
+//		 or create custom utility functions to get random values.
 // GOAL: Allow easy configuration of random game settings.
 //
 // TODO: Add error checking & exception handling.
@@ -22,7 +22,7 @@ void spawn_enemy();
 void spawn_debris(const Entity& entity);
 void spawn_explosions(int x, int y, int num);
 void clamp_player();
-bool ship_collision(Entity& bullet);
+bool is_ship_collision(Entity& bullet);
 
 void update();
 void update_player();
@@ -74,33 +74,17 @@ void init_scene()
 
 void reset_scene()
 {
-	Entity* e = nullptr;
-
-	while (player.next)  // delete alien ships in linked list
-	{
-		e = player.next;
-		player.next = e->next;
-		delete e;
-	}
-
-	while (scene.bullets_head.next)
-	{
-		e = scene.bullets_head.next;
-		scene.bullets_head.next = e->next;
-		delete e;
-	}
-
-	scene.ships_tail = &player;
-	scene.bullets_tail = &scene.bullets_head;
-
+	scene.ships.clear();
+	scene.bullets.clear();
 	scene.debris_list.clear();
+	scene.explosions.clear();
 
 	// init player
 	player.texture = player_texture;
 	player.w = 128;
 	player.h = 128;
-	player.x = SCREEN_WIDTH / 4;
-	player.y = SCREEN_HEIGHT / 2;
+	player.x = SCREEN_WIDTH / 4.f;
+	player.y = SCREEN_HEIGHT / 2.f;
 	player.health = 3;
 	player.owner = PLAYER;
 
@@ -111,23 +95,22 @@ void reset_scene()
 
 void fire_bullet()
 {
-	Entity* bullet = new Entity();
+	Entity bullet{};
 
-	scene.bullets_tail->next = bullet;
-	scene.bullets_tail = bullet;
-
-	bullet->texture = bullet_texture;
-	bullet->w = 64;
-	bullet->h = 16;
+	bullet.texture = bullet_texture;
+	bullet.w = 64;
+	bullet.h = 16;
 
 	// position the bullet at player's center
-	bullet->x = player.x + (player.w / 2.f) - (bullet->w / 2.f);
-	bullet->y = player.y + (player.h / 2.f) - (bullet->h / 2.f);
+	bullet.x = player.x + (player.w / 2.f) - (bullet.w / 2.f);
+	bullet.y = player.y + (player.h / 2.f) - (bullet.h / 2.f);
 
-	bullet->dx = PLAYER_BULLET_SPEED;
+	bullet.dx = PLAYER_BULLET_SPEED;
 
-	bullet->health = 1;
-	bullet->owner = PLAYER;
+	bullet.health = 1;
+	bullet.owner = PLAYER;
+
+	scene.bullets.push_back(std::move(bullet));
 
 	player.reload = 8;  // set reload timer
 }
@@ -135,30 +118,29 @@ void fire_bullet()
 
 void fire_alien_bullet(Entity& entity)
 {
-	Entity* bullet = new Entity();
+	Entity bullet{};
 
-	scene.bullets_tail->next = bullet;
-	scene.bullets_tail = bullet;
+	bullet.texture = alien_bullet_texture;
+	bullet.w = 64;
+	bullet.h = 16;
 
-	bullet->texture = alien_bullet_texture;
-	bullet->w = 64;
-	bullet->h = 16;
-
-	bullet->x = entity.x + (entity.w / 2.f) - (bullet->w / 2.f);
-	bullet->y = entity.y + (entity.h / 2.f) - (bullet->h / 2.f);
+	bullet.x = entity.x + (entity.w / 2.f) - (bullet.w / 2.f);
+	bullet.y = entity.y + (entity.h / 2.f) - (bullet.h / 2.f);
 
 	// TODO: change function params to float?
 	calculate_slope(static_cast<int>(player.x) + (player.w / 2), 
 					static_cast<int>(player.y) + (player.h / 2), 
-					static_cast<int>(bullet->x), 
-					static_cast<int>(bullet->y), 
-					bullet->dx, bullet->dy);  // sets dx, dy
+					static_cast<int>(bullet.x), 
+					static_cast<int>(bullet.y), 
+					bullet.dx, bullet.dy);  // sets dx, dy
 
-	bullet->dx *= ALIEN_BULLET_SPEED;
-	bullet->dy *= ALIEN_BULLET_SPEED;
+	bullet.dx *= ALIEN_BULLET_SPEED;
+	bullet.dy *= ALIEN_BULLET_SPEED;
 
-	bullet->health = 1;
-	bullet->owner = ALIENS;
+	bullet.health = 1;
+	bullet.owner = ALIENS;
+
+	scene.bullets.push_back(std::move(bullet));
 
 	entity.reload = FPS * (1 + rand() % 3);  // random reload timer
 }
@@ -166,22 +148,21 @@ void fire_alien_bullet(Entity& entity)
 
 void spawn_enemy()
 {
-	Entity* enemy = new Entity();
+	Entity enemy{};
 
-	scene.ships_tail->next = enemy;
-	scene.ships_tail = enemy;
+	enemy.texture = alien_texture;
+	enemy.w = 96;
+	enemy.h = 96;
+	enemy.x = SCREEN_WIDTH;
+	enemy.y = static_cast<float>(rand() % (SCREEN_HEIGHT - enemy.h));
+	enemy.dx = -(2.f + (rand() % 4));  // random speed
+	enemy.health = 1;
+	enemy.reload = FPS * (1 + rand() % 3);
+	enemy.owner = ALIENS;
 
-	enemy->texture = alien_texture;
-	enemy->w = 96;
-	enemy->h = 96;
-	enemy->x = SCREEN_WIDTH;
-	enemy->y = rand() % (SCREEN_HEIGHT - enemy->h);
-	enemy->dx = -(2.f + (rand() % 4));  // random speed
-	enemy->health = 1;
-	enemy->reload = FPS * (1 + rand() % 3);
-	enemy->owner = ALIENS;
+	scene.ships.push_back(std::move(enemy));
 
-	enemy_spawn_timer = 30 + (rand() % FPS * 2);
+	enemy_spawn_timer = 30 + (rand() % FPS * 1);
 }
 
 
@@ -228,11 +209,11 @@ void spawn_explosions(int x, int y, int num)
 	{
 		Explosion exp{};
 
-		exp.x = x + (rand() % 32) - (rand() % 32);
-		exp.y = y + (rand() % 32) - (rand() % 32);
+		exp.x = static_cast<float>(x + (rand() % 32) - (rand() % 32));
+		exp.y = static_cast<float>(y + (rand() % 32) - (rand() % 32));
 
-		exp.dx = (rand() % 10) - (rand() % 10) / 10;
-		exp.dy = (rand() % 10) - (rand() % 10) / 10;
+		exp.dx = (rand() % 10) - (rand() % 10) / 10.f;
+		exp.dy = (rand() % 10) - (rand() % 10) / 10.f;
 
 		switch (rand() % 4)
 		{
@@ -256,7 +237,7 @@ void spawn_explosions(int x, int y, int num)
 
 		exp.alpha = rand() % FPS * 3;
 
-		scene.explosion_list.push_back(std::move(exp));
+		scene.explosions.push_back(std::move(exp));
 	}
 }
 
@@ -269,14 +250,14 @@ void clamp_player()
 		{
 			player.x = 0;
 		}
-		if (player.x > SCREEN_WIDTH / 2 - player.w / 2)
+		if (player.x > SCREEN_WIDTH / 2.f - player.w / 2.f)
 		{
-			player.x = static_cast<float>(SCREEN_WIDTH / 2 - player.w / 2);
+			player.x = static_cast<float>(SCREEN_WIDTH / 2.f - player.w / 2.f);
 		}
 
-		if (player.y < 0)
+		if (player.y < 0.f)
 		{
-			player.y = 0;
+			player.y = 0.f;
 		}
 		if (player.y > SCREEN_HEIGHT - player.h)
 		{
@@ -286,30 +267,44 @@ void clamp_player()
 }
 
 
-bool ship_collision(Entity& bullet)
+void on_ship_collision(Entity& bullet, Entity& ship)
 {
-	for (Entity* e = &player; e != nullptr; e = e->next)
+	bullet.health = 0;
+	ship.health -= 1;
+
+	if (ship.health == 0)
 	{
-		// use mid-right for player bullets, mid-left for alien bullets
-		float x = bullet.owner == PLAYER ? bullet.x + (bullet.w * 0.75f) : 
-										   bullet.x + (bullet.w * 0.25f);
+		spawn_debris(ship);
+
+		int x = static_cast<int>(ship.x + (ship.w / 2.f));
+		int y = static_cast<int>(ship.y + (ship.h / 2.f));
+		int num = 16;  // why?
+		spawn_explosions(x, y, num);
+	}
+}
+
+
+bool is_ship_collision(Entity& bullet)
+{
+	// check for collision with player
+	float x = bullet.x + (bullet.w * 0.75f);  // mid-right for player bullets
+	float center_y = bullet.y + (bullet.h / 2.f);
+
+	if (bullet.owner != PLAYER && collision_point(player, x, center_y))
+	{
+		on_ship_collision(bullet, player);
+		return true;
+	}
+
+	// check for collision with aliens
+	for (Entity& ship : scene.ships)
+	{
+		float x = bullet.x + (bullet.w * 0.25f);  // mid-left for alien bullets
 		float center_y = bullet.y + (bullet.h / 2.f);
 
-		if (e->owner != bullet.owner && collision_point(*e, x, center_y))
+		if (bullet.owner != ALIENS && collision_point(ship, x, center_y))
 		{
-			bullet.health = 0;
-			e->health -= 1;
-
-			if (e->health == 0)
-			{
-				spawn_debris(*e);
-
-				int x = e->x + (e->w / 2);
-				int y = e->y + (e->h / 2);
-				int num = 16;  // why?
-				spawn_explosions(x, y, num);
-			}
-
+			on_ship_collision(bullet, ship);
 			return true;
 		}
 	}
@@ -403,39 +398,40 @@ void update_player()
 
 void update_enemy_ai()
 {
-	for (Entity* e = player.next; e != nullptr; e = e->next)
+	for (int i = 0; i < scene.ships.size(); ++i)
 	{
-		if (--e->reload <= 0)  // decrement timer
+		if (--scene.ships[i].reload <= 0)  // decrement reload timer
 		{
-			fire_alien_bullet(*e);
+			fire_alien_bullet(scene.ships[i]);
 		}
 	}
+
+	//for (Entity& enemy : scene.ships)  // BUG?!  // Nope.
+	//{
+	//	if (--enemy.reload <= 0)  // decrement reload timer
+	//	{
+	//		fire_alien_bullet(enemy);
+	//	}
+	//}
 }
 
 
 void update_ships()
 {
-	Entity* prev = &player;
-
-	for (Entity* e = player.next; e != nullptr; e = e->next)
+	for (auto itr = scene.ships.begin(); itr != scene.ships.end();)
 	{
-		e->x += e->dx;
-		e->y += e->dy;
+		itr->x += itr->dx;
+		itr->y += itr->dy;
 
-		// delete enemy if it's dead or offscreen
-		if (e->health <= 0 || e->x < -e->w)  
+		// remove enemy from list if it's dead or offscreen
+		if (itr->health <= 0 || itr->x < -itr->w)  
 		{
-			if (e == scene.ships_tail)
-			{
-				scene.ships_tail = prev;
-			}
-
-			prev->next = e->next;
-			delete e;
-			e = prev;
+			itr = scene.ships.erase(itr);
 		}
-
-		prev = e;
+		else
+		{
+			++itr;
+		}
 	}
 }
 
@@ -449,24 +445,19 @@ bool is_offscreen(const Entity& entity)  // secret utility function
 
 void update_bullets()
 {
-	Entity* prev = &scene.bullets_head;  // lets us delete entity & re-link list
-	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
+	for (auto itr = scene.bullets.begin(); itr != scene.bullets.end();)
 	{
-		b->x += b->dx;
-		b->y += b->dy;
+		itr->x += itr->dx;
+		itr->y += itr->dy;
 
-		if (is_offscreen(*b) || ship_collision(*b))
+		if (is_offscreen(*itr) || is_ship_collision(*itr))
 		{
-			if (b == scene.bullets_tail)
-			{
-				scene.bullets_tail = prev;
-			}
-			prev->next = b->next;
-			delete b;  // delete bullet
-			b = prev;
+			itr = scene.bullets.erase(itr);
 		}
-
-		prev = b;
+		else
+		{
+			++itr;
+		}
 	}
 }
 
@@ -495,8 +486,8 @@ void update_debris()
 
 void update_explosions()
 {
-	for (auto itr = scene.explosion_list.begin();
-		itr != scene.explosion_list.end();
+	for (auto itr = scene.explosions.begin();
+		itr != scene.explosions.end();
 		)
 	{
 		itr->x += itr->dx;
@@ -506,7 +497,7 @@ void update_explosions()
 
 		if (itr->alpha <= 0)  // decrement alpha
 		{
-			itr = scene.explosion_list.erase(itr);
+			itr = scene.explosions.erase(itr);
 		}
 		else
 		{
@@ -532,7 +523,7 @@ void draw_explosions()
 	SDL_SetRenderDrawBlendMode(app.renderer, SDL_BLENDMODE_ADD);
 
 	SDL_SetTextureBlendMode(explosion_texture, SDL_BLENDMODE_ADD);
-	for (Explosion& exp : scene.explosion_list)
+	for (Explosion& exp : scene.explosions)
 	{
 		SDL_SetTextureColorMod(explosion_texture, exp.r, exp.g, exp.b);
 		SDL_SetTextureAlphaMod(explosion_texture, exp.alpha);
@@ -555,14 +546,14 @@ void render()
 		draw(player);
 	}
 
-	for (Entity* b = scene.bullets_head.next; b != nullptr; b = b->next)
+	for (const Entity& bullet : scene.bullets)
 	{
-		draw(*b);
+		draw(bullet);
 	}
 
-	for (Entity* e = player.next; e != nullptr; e = e->next)  // ships
+	for (const Entity& ship : scene.ships)  // draws player
 	{
-		draw(*e);
+		draw(ship);
 	}
 
 	for (const Debris& d : scene.debris_list)
