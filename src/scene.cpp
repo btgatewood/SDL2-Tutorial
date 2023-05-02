@@ -34,6 +34,7 @@ void update_debris();
 void update_explosions();
 
 void render();
+void render_text();
 
 
 // static game objects & data
@@ -51,6 +52,7 @@ SDL_Texture* explosion_texture;
 
 int enemy_spawn_timer;
 int scene_reset_timer;
+int high_score;
 
 
 // function definitions
@@ -83,6 +85,8 @@ void reset_scene()
 	scene.bullets.clear();
 	scene.debris_list.clear();
 	scene.explosions.clear();
+
+	scene.score = 0;
 
 	// init player
 	player.texture = player_texture;
@@ -322,6 +326,8 @@ void on_ship_collision(Entity& bullet, Entity& ship)
 		else
 		{
 			play_sound(SND_ALIEN_DEATH, CH_ANY);
+			++scene.score;
+			high_score = std::max(scene.score, high_score);
 		}
 	}
 }
@@ -570,5 +576,22 @@ void render()
 
 	draw_explosions();
 
+	render_text();
+
 	end_scene();
+}
+
+
+void render_text()
+{
+	draw_text(16, 16, "SCORE: " + std::to_string(scene.score));
+
+	if (scene.score > 0 && scene.score == high_score)
+	{
+		draw_text(1024, 16, "HIGH SCORE: " + std::to_string(high_score), 0, 255, 0);  // green
+	}
+	else
+	{
+		draw_text(1024, 16, "HIGH SCORE: " + std::to_string(high_score));
+	}
 }

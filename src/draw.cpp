@@ -57,8 +57,6 @@ void draw(SDL_Texture* texture, float x, float y)  // uses texture dimensions
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
 }
 
-
-// extra functions
 void draw_rect(SDL_Texture* texture, const SDL_Rect& src, int x, int y)
 {
 	SDL_Rect dest{ x, y, src.w, src.h };

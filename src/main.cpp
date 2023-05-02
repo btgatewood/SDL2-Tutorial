@@ -63,6 +63,7 @@ int main(int argc, char* argv[])
 
 	init_SDL();
 	init_scene();
+	init_font();
 
 	while (!quit)
 	{

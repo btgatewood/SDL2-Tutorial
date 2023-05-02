@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>  // std::cout for printing to console
+#include <string>
 #include <vector>
 #include <SDL.h>
 #include <SDL_image.h>
@@ -13,6 +14,10 @@ const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 720;
 const int FPS = 60;
 const int NUM_KEYS = 256;  // index keyboard using SDL scancodes
+
+const int MAX_LINE_LENGTH = 1024;
+const int GLYPH_WIDTH = 18;
+const int GLYPH_HEIGHT = 28;
 
 const int PLAYER_SPEED = 4;
 const int PLAYER_BULLET_SPEED = 16;
@@ -68,7 +73,6 @@ struct Entity
 	int health;
 	int reload;
 	int owner;
-	// Entity* next;
 };
 
 struct Debris
@@ -102,6 +106,7 @@ struct Scene
 	std::vector<Entity> bullets;
 	std::vector<Debris> debris_list;
 	std::vector<Explosion> explosions;
+	int score;
 };
 
 
@@ -121,6 +126,12 @@ void draw(SDL_Texture* texture, float x, float y, int w, int h);
 void draw_rect(SDL_Texture* texture, const SDL_Rect& srcrect,
 			   float x, float y, int w, int h);
 void draw(SDL_Texture* texture, float x, float y);  // uses texture dimensions
+void draw_rect(SDL_Texture* texture, const SDL_Rect& src, int x, int y);
+
+// text
+void init_font();
+void draw_text(int x, int y, const std::string& str, 
+			   int r = 255, int g = 255, int b = 255);
 
 // input
 void on_key_down(SDL_KeyboardEvent* event);
