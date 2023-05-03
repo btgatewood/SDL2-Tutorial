@@ -160,7 +160,8 @@ void add_enemy()
 	enemy.h = 96;
 	enemy.x = SCREEN_WIDTH;
 	enemy.y = static_cast<float>(rand() % (SCREEN_HEIGHT - enemy.h));
-	enemy.dx = -(2.f + (rand() % 4));  // random speed
+	enemy.dx = -(2.f + (rand() % 4));
+	enemy.dy = (-100 + rand() % 200) / 100.f;
 	enemy.health = 1;
 	enemy.reload = FPS * (1 + rand() % 3);
 	enemy.owner = ALIENS;
@@ -370,7 +371,6 @@ static void update()
 
 		if (scene_reset_timer <= 0)
 		{
-			// reset_scene();
 			add_highscore(scene.score);
 			init_highscores();
 		}
@@ -429,8 +429,11 @@ void update_player()
 
 void update_enemy_ai()
 {
-	for (Entity& enemy : scene.enemies)  // BUG?!  // Nope.
+	for (Entity& enemy : scene.enemies)
 	{
+		enemy.y = std::min(std::max(enemy.y, 0.f),  // clamp enemies to screen
+						   static_cast<float>(SCREEN_HEIGHT - enemy.h));
+
 		if (--enemy.reload <= 0)  // decrement reload timer
 		{
 			add_alien_bullet(enemy);
@@ -604,7 +607,11 @@ static void render()
 	draw_background();
 	for (const Entity& powerup : scene.powerups)
 	{
-		draw(powerup);
+		// flash powerups with less than 2 seconds left
+		if (powerup.health > (FPS * 2) || powerup.health % 12 < 6)
+		{
+			draw(powerup);
+		}
 	}
 	for (const Entity& bullet : scene.bullets)
 	{

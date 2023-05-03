@@ -16,8 +16,9 @@ int compare_highscores(const void* a, const void* b);
 
 std::vector<HighScore> highscores;
 std::string input_name;
-bool is_new_highscore{ false };
-int blink_cursor{ 0 };
+bool is_new_highscore;
+int flash_cursor;
+static int timeout;
 
 
 void init_highscore_table()
@@ -37,6 +38,8 @@ void init_highscores()
 	{
 		key = 0;
 	}
+
+	timeout = FPS * 10;
 }
 
 void add_highscore(int score)
@@ -74,6 +77,11 @@ static void update()
 	}
 	else
 	{
+		if (--timeout <= 0)
+		{
+			init_title();
+		}
+
 		if (app.keyboard[SDL_SCANCODE_SPACE] ||
 			app.keyboard[SDL_SCANCODE_LCTRL] ||
 			app.keyboard[SDL_SCANCODE_RCTRL])
@@ -82,9 +90,9 @@ static void update()
 		}
 	}
 
-	if (++blink_cursor >= FPS)
+	if (++flash_cursor >= FPS)
 	{
-		blink_cursor = 0;
+		flash_cursor = 0;
 	}
 }
 
@@ -147,7 +155,7 @@ void draw_name_input()
 
 	draw_text(SCREEN_WIDTH / 2, 250, ALIGN_CENTER, input_name);
 
-	if (blink_cursor < FPS / 2)
+	if (flash_cursor < FPS / 2)
 	{
 		SDL_Rect rect{ 0, 250, GLYPH_WIDTH, GLYPH_HEIGHT };
 		rect.x = (SCREEN_WIDTH / 2) + (static_cast<int>(input_name.length()) * 
@@ -181,7 +189,10 @@ void draw_highscores()
 		y += 50;
 	}
 
-	draw_text(SCREEN_WIDTH / 2, 650, ALIGN_CENTER, "PRESS FIRE TO PLAY!");
+	if (timeout % 40 < 20)  // flash text
+	{
+		draw_text(SCREEN_WIDTH / 2, 650, ALIGN_CENTER, "PRESS FIRE TO PLAY!");
+	}
 }
 
 bool operator<(const HighScore& a, const HighScore& b)

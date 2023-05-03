@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
 
 	init_SDL();
 	init_game();
-	init_highscores();
+	init_title();
 
 	while (!quit)
 	{

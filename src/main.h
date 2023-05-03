@@ -190,3 +190,6 @@ void draw_background();
 void init_highscore_table();
 void init_highscores();
 void add_highscore(int score);
+
+// title
+void init_title();

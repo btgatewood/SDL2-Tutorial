@@ -29,6 +29,7 @@
     <ClCompile Include="src\physics.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\text.cpp" />
+    <ClCompile Include="src\title.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main.h" />
