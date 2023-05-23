@@ -1,8 +1,6 @@
 #include "main.h"
 
 App app;
-bool quit = false;
-SDL_Texture* crosshair_texture;
 
 void init_SDL()
 {
@@ -78,8 +76,6 @@ SDL_Texture* load_texture(const char* file)
 	return sdl_texture;
 }
 
-void update() {}
-
 void draw(SDL_Texture* texture, int x, int y, bool center)
 {
 	SDL_Rect dstrect{ x, y, 0, 0 };
@@ -90,19 +86,6 @@ void draw(SDL_Texture* texture, int x, int y, bool center)
 		dstrect.y -= dstrect.h / 2;
 	}
 	SDL_RenderCopy(app.renderer, texture, nullptr, &dstrect);
-}
-
-void render()
-{
-	draw(crosshair_texture, app.mouse.x, app.mouse.y, true);
-}
-
-void init_scene()
-{
-	app.delegate.update = update;
-	app.delegate.render = render;
-
-	crosshair_texture = load_texture("data/targetter.png");
 }
 
 void on_key_down(SDL_KeyboardEvent* event)
@@ -133,7 +116,7 @@ void process_events()
 		switch (event.type)
 		{
 		case SDL_QUIT:  // TODO: quit on escape key
-			quit = true;
+			app.quit = true;
 			break;
 
 		case SDL_KEYDOWN:
@@ -143,8 +126,7 @@ void process_events()
 			on_key_up(&event.key);
 			break;
 
-		case SDL_TEXTINPUT:
-			app.input_text = event.text.text;
+		default:
 			break;
 		}
 	}
@@ -196,13 +178,13 @@ int main(int argc, char* argv[])
 	std::cout << "Seeded rng with {" << seed << "}.\n";
 
 	init_SDL();
-	init_scene();
+	init_level();
 
-	while (!quit)
+	while (!app.quit)
 	{
 		process_events();
 		app.delegate.update();
-		SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, 255);
+		// SDL_SetRenderDrawColor(app.renderer, 0, 0, 0, 255);
 		SDL_RenderClear(app.renderer);	  // begin scene
 		app.delegate.render();
 		SDL_RenderPresent(app.renderer);  // end scene
