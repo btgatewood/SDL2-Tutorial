@@ -19,7 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\world.cpp" />
+    <ClCompile Include="src\draw.cpp" />
+    <ClCompile Include="src\init.cpp" />
+    <ClCompile Include="src\input.cpp" />
+    <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\main.cpp" />
   </ItemGroup>
   <ItemGroup>

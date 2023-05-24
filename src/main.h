@@ -60,17 +60,40 @@ struct Entity
 	float dx;
 	float dy;
 	int health;
-	int angle;
+	double angle;
 };
 
 struct Scene
 {
 	std::vector<Entity> entities;
+	// Entity player;
+	// SDL_Texture* crosshair_texture;
 };
 
-// main ( app / core / engine )
+//
+//	Main ( "App" / "Core" / "Engine" ) Functions
+//
+
+// draw
 SDL_Texture* load_texture(const char* file);
 void draw(SDL_Texture* texture, int x, int y, bool center);
+void draw_rotated(SDL_Texture* texture, int x, int y, double angle);
 
-// game
+// init
+void init_SDL();
+void shutdown();
+
+// input
+void process_events();
+
+// math/physics/util
+inline double get_angle(int x1, int y1, int x2, int y2)
+{
+	double angle = -90 + atan2(y1 - y2, x1 - x2) * (180 / PI);
+	return angle >= 0 ? angle : 360 + angle;
+}
+
+//
+//	Game Functions
+//
 void init_level();
