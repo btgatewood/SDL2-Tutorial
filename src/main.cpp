@@ -7,8 +7,8 @@ void cap_frame_rate()
 	static Uint64 prev_time = SDL_GetTicks64();  // could this be causing the bugs?
 	static double remainder;
 
-	Uint64 wait = 16 + (int)remainder;  // accumulator helps keep us closer to 60fps
-	remainder -= (int)remainder;  // casting to int is the trick
+	Uint64 wait = 16 + (int)remainder;	  // accumulator helps keep us closer to 60fps
+	remainder -= (int)remainder;		  // casting to int is the trick
 	remainder += (1000.0 / 60.0) - 16.0;  // prints "0.666667"
 
 	Uint64 frame_time = SDL_GetTicks64() - prev_time;

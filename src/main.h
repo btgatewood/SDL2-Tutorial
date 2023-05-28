@@ -12,10 +12,19 @@ const int FPS = 60;
 const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 720;
 const int NUM_KEYS = 256;  // keystates are indexed using SDL scancodes
+const int NUM_MOUSE_BUTTONS = 6;
 const int MAX_MIX_CHANNELS = 8;
 
 const double PI = 3.1415926535897931;
 const int PLAYER_SPEED = 6;
+
+enum
+{
+	WEAPON_PISTOL,
+	WEAPON_SHOTGUN,
+	WEAPON_SMG,
+	NUM_WEAPONS
+};
 
 struct Texture
 {
@@ -33,6 +42,8 @@ struct Mouse
 {
 	int x;
 	int y;
+	bool button[NUM_MOUSE_BUTTONS];  // if pressed true, else false
+	int wheel;
 };
 
 struct App
@@ -60,6 +71,8 @@ struct Entity
 	float dx;
 	float dy;
 	int health;
+	int reload_timer;
+	int weapon_type;
 	double angle;
 };
 
@@ -68,6 +81,7 @@ struct Scene
 	std::vector<Entity> entities;
 	// Entity player;
 	// SDL_Texture* crosshair_texture;
+	int ammo[NUM_WEAPONS];
 };
 
 //
@@ -87,6 +101,22 @@ void shutdown();
 void process_events();
 
 // math/physics/util
+inline void calc_slope(int x1, int y1, int x2, int y2, float& dx, float& dy)
+{
+	int steps = std::max(std::abs(x1 - x2), std::abs(y1 - y2));
+
+	if (steps != 0)  // avoid division by zero
+	{
+		dx = (x1 - x2) / static_cast<float>(steps);
+		dy = (y1 - y2) / static_cast<float>(steps);
+	}
+	else  // x1,y1 == x2,y2
+	{
+		dx = 0;
+		dy = 0;
+	}
+}
+
 inline double get_angle(int x1, int y1, int x2, int y2)
 {
 	double angle = -90 + atan2(y1 - y2, x1 - x2) * (180 / PI);

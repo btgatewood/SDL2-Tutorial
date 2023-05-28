@@ -22,6 +22,16 @@ void on_key_up(SDL_KeyboardEvent* event)
 	}
 }
 
+void on_mouse_button_down(SDL_MouseButtonEvent* event)
+{
+	app.mouse.button[event->button] = true;
+}
+
+void on_mouse_button_up(SDL_MouseButtonEvent* event)
+{
+	app.mouse.button[event->button] = false;
+}
+
 void process_events()
 {
 	SDL_Event event;
@@ -33,11 +43,23 @@ void process_events()
 			app.quit = true;
 			break;
 
+		// keyboard input
 		case SDL_KEYDOWN:
 			on_key_down(&event.key);
 			break;
 		case SDL_KEYUP:
 			on_key_up(&event.key);
+			break;
+
+		// mouse input
+		case SDL_MOUSEBUTTONDOWN:
+			on_mouse_button_down(&event.button);
+			break;
+		case SDL_MOUSEBUTTONUP:
+			on_mouse_button_up(&event.button);
+			break;
+		case SDL_MOUSEWHEEL:
+			app.mouse.wheel = event.wheel.y; // if up: y > 0, if down: y < 0
 			break;
 
 		default:
