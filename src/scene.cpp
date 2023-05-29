@@ -6,6 +6,7 @@ Scene scene;
 Entity player;
 SDL_Texture* cursor_texture;
 SDL_Texture* bullet_texture;
+SDL_Texture* background_texture;
 
 void update();
 void render();
@@ -17,35 +18,13 @@ void init_scene()
 
 	cursor_texture = load_texture("data/targetter.png");
 	bullet_texture = load_texture("data/bullet.png");
+	background_texture = load_texture("data/grid01.png");
 
 	init_player();
 }
 
-void fire_pistol()
+void fire_bullet()
 {
-	Entity bullet{};
-
-	bullet.texture = bullet_texture;
-	bullet.x = player.x;
-	bullet.y = player.y;
-	bullet.health = FPS * 2;
-	bullet.angle = player.angle;
-
-	calc_slope(app.mouse.x, app.mouse.y,
-		static_cast<int>(bullet.x), static_cast<int>(bullet.y),
-		bullet.dx, bullet.dy);
-
-	bullet.dx *= 16;
-	bullet.dy *= 16;
-
-	scene.entities.push_back(std::move(bullet));
-
-	player.reload_timer = 16;  // medium reload time
-}
-
-void fire_smg()
-{
-	// NOTE: the only difference from fire_pistol() function is the reload timer
 	Entity bullet{};
 
 	bullet.texture = bullet_texture;
@@ -63,10 +42,17 @@ void fire_smg()
 
 	scene.entities.push_back(std::move(bullet));
 
-	player.reload_timer = 4;  // fast reload time
+	if (player.weapon_type == WPN_PISTOL)
+	{
+		player.reload_timer = 16;  // med reload time
+	}
+	else
+	{
+		player.reload_timer = 4;  // fast reload time
+	}
 }
 
-void fire_shotgun()
+void fire_bullet_spread()
 {
 	float dx{ 0.f };
 	float dy{ 0.f };
@@ -104,20 +90,17 @@ void fire_shotgun()
 	player.reload_timer = static_cast<int>(FPS * 0.75);  // slow reload time
 }
 
-void fire_player_bullet()
+void fire_player_weapon()
 {
 	switch (player.weapon_type)
 	{
+	case WPN_PISTOL:
 	case WPN_SMG:
-		fire_smg();
+		fire_bullet();
 		break;
 
 	case WPN_SHOTGUN:
-		fire_shotgun();
-		break;
-
-	default:
-		fire_pistol();
+		fire_bullet_spread();
 		break;
 	}
 }
@@ -174,7 +157,14 @@ void draw_weapon_info(const std::string& name, Weapon type, int x, int y)
 
 void render()
 {
-	// TODO: draw background
+	// draw background
+	for (int y = 0; y < SCREEN_HEIGHT; y += 64)
+	{
+		for (int x = 0; x < SCREEN_WIDTH; x += 64)
+		{
+			draw(background_texture, x, y, false);
+		}
+	}
 	
 	// draw entities (bullets)
 	for (const Entity& e : scene.entities)
@@ -189,13 +179,12 @@ void render()
 
 	// draw hud
 	// TODO: research c++ format strings and variable args
-	draw_text(10, 10, ALIGN_LEFT, "HEALTH:" + std::to_string(player.health), 255, 255, 255);
-	draw_text(250, 10, ALIGN_LEFT, "SCORE:00000", 255, 255, 255);
-	draw_weapon_info("PISTOL", WPN_PISTOL, 550, 10);
-	draw_weapon_info("SMG", WPN_SMG, 800, 10);
-	draw_weapon_info("SHOTGUN", WPN_SHOTGUN, 1050, 10);
+	draw_text(25, 10, ALIGN_LEFT, "HEALTH:" + std::to_string(player.health), 255, 255, 255);
+	draw_text(275, 10, ALIGN_LEFT, "SCORE:00000", 255, 255, 255);
+	draw_weapon_info("PISTOL", WPN_PISTOL, 575, 10);
+	draw_weapon_info("SMG", WPN_SMG, 825, 10);
+	draw_weapon_info("SHOTGUN", WPN_SHOTGUN, 1075, 10);
 
-	
 	// draw cursor
 	draw(cursor_texture, app.mouse.x, app.mouse.y, true);
 }

@@ -22,6 +22,7 @@ const int MAX_MIX_CHANNELS = 8;
 
 const double PI = 3.1415926535897931;
 const int PLAYER_SPEED = 6;
+const int GRID_SIZE = 64;  // background tile size
 
 enum Weapon
 {
@@ -146,7 +147,7 @@ inline double get_angle(int x1, int y1, int x2, int y2)
 
 // scene
 void init_scene();
-void fire_player_bullet();
+void fire_player_weapon();
 
 // player
 void init_player();

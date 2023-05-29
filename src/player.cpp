@@ -48,7 +48,7 @@ void update_player()
 	if (player.reload_timer == 0 && scene.ammo[player.weapon_type] > 0 &&
 		app.mouse.button[SDL_BUTTON_LEFT])
 	{
-		fire_player_bullet();
+		fire_player_weapon();
 		--scene.ammo[player.weapon_type];
 	}
 
