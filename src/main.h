@@ -13,17 +13,29 @@ const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 720;
 const int NUM_KEYS = 256;  // keystates are indexed using SDL scancodes
 const int NUM_MOUSE_BUTTONS = 6;
+
+const int MAX_LINE_LENGTH = 1024;
+const int GLYPH_WIDTH = 18;
+const int GLYPH_HEIGHT = 28;
+
 const int MAX_MIX_CHANNELS = 8;
 
 const double PI = 3.1415926535897931;
 const int PLAYER_SPEED = 6;
 
-enum
+enum Weapon
 {
-	WEAPON_PISTOL,
-	WEAPON_SHOTGUN,
-	WEAPON_SMG,
+	WPN_PISTOL,
+	WPN_SMG,
+	WPN_SHOTGUN,
 	NUM_WEAPONS
+};
+
+enum Text
+{
+	ALIGN_LEFT,
+	ALIGN_CENTER,
+	ALIGN_RIGHT
 };
 
 struct Texture
@@ -81,7 +93,8 @@ struct Scene
 	std::vector<Entity> entities;
 	// Entity player;
 	// SDL_Texture* crosshair_texture;
-	int ammo[NUM_WEAPONS];
+	// SDL_Texture* bullet_texture;
+	int ammo[NUM_WEAPONS]{ 0 };
 };
 
 //
@@ -91,7 +104,11 @@ struct Scene
 // draw
 SDL_Texture* load_texture(const char* file);
 void draw(SDL_Texture* texture, int x, int y, bool center);
+void draw_rect(SDL_Texture* texture, const SDL_Rect& src, int x, int y);
 void draw_rotated(SDL_Texture* texture, int x, int y, double angle);
+
+void draw_text(int x, int y, int align, const std::string& str,
+			   int r, int g, int b);
 
 // init
 void init_SDL();
@@ -126,4 +143,11 @@ inline double get_angle(int x1, int y1, int x2, int y2)
 //
 //	Game Functions
 //
-void init_level();
+
+// scene
+void init_scene();
+void fire_player_bullet();
+
+// player
+void init_player();
+void update_player();

@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
 	std::cout << "Seeded rng with {" << seed << "}.\n";
 
 	init_SDL();
-	init_level();
+	init_scene();
 
 	while (!app.quit)
 	{

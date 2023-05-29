@@ -22,8 +22,10 @@
     <ClCompile Include="src\draw.cpp" />
     <ClCompile Include="src\init.cpp" />
     <ClCompile Include="src\input.cpp" />
+    <ClCompile Include="src\player.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\text.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\main.h" />
